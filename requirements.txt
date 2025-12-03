@@ -1,0 +1,24 @@
+# Zależności dla całego projektu Lodz_Hack
+# Połączone z wszystkich podfolderów
+
+# Assistant - LLM Server
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic>=2.8.0
+beautifulsoup4==4.12.2
+lxml>=5.0.0
+openai>=1.12.0
+python-dotenv>=1.0.0
+
+# alerts-monitor - Alerts Monitor
+flask>=3.0.0
+
+# Wiki_Testing_Area - Data Analysis
+pandas>=2.0.0
+folium>=0.14.0
+
+# Wspólne zależności (użyte w wielu modułach)
+requests>=2.31.0
+protobuf>=4.0.0
+gtfs-realtime-bindings>=1.0.0
+

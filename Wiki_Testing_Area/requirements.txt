@@ -1,5 +1,0 @@
-pandas>=2.0.0
-protobuf>=4.0.0
-gtfs-realtime-bindings>=1.0.0
-folium>=0.14.0
-

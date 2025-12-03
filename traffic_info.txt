@@ -1,6 +1,6 @@
 ================================================================================
 AKTUALNE INFORMACJE O KOMUNIKACJI MIEJSKIEJ W ŁODZI
-Zaktualizowano: 2025-12-03T15:40:39.085137
+Zaktualizowano: 2025-12-03T18:39:03.477153
 ================================================================================
 
 
@@ -624,8 +624,8 @@ linia 59
 RADOGOSZCZ WSCHÓD – Świtezianki, Sikorskiego, Zgierska,
 Zachodnia, Ogrodowa, Nowomiejska – PL. WOLNOŚCI
 PL. WOLNOŚCI – Legionów, Zachodnia
-, Zgierska, Sikorskiego, Świtezianki – RADOGOSZCZ WSCHÓD
-
+, Zgierska, Sikorskiego, Świtezianki – RADOGOSZCZ WSCHÓD
+
 .
 linia N3A/B
 INSTYTUT CZMP – Matek Polskich (wlot zachodni), Paradna, Rzgowska, św. Wojciecha, Sternfelda, Kurczaki, (wariant B: INTYTUT CZMP – Matek Polskich (wlot zachodni), Paradna, Trybunalska, Kosynierów Gdyńskich, Łazowskiego, Strażacka), Rzgowska, Bankowa, Śląska, Kilińskiego, Broniewskiego, Rzgowska, Sieradzka, Piotrkowska, pl. Niepodległości, Rzgowska, Dąbrowskiego,
@@ -708,10 +708,10 @@ Sprawdź rozkład na dzień:i godzinę:
 
 LinieZmianyUtrudnieniaPrzystankiPołączeniaSchematyPobierz
 
-KOMUNIKATOd dnia 21 września 2025 r., zmiana tras linii55A55B77N7AN7BKOMUNIKAT 226/25
+KOMUNIKATOd dnia 21 września 2025 r., zmiana tras linii55A55B77N7AN7BKOMUNIKAT 226/25
 W związku z rozpoczęciem prac drogowych na ul. Radwańskiej, na odcinku Wólczańska – Politechniki, na podstawie decyzji Zarządu Dróg i Transportu, od dnia21 września 2025 r.(niedziela), dla linii nocnej od nocy z 20/21 września 2025 r. (sb/nd) zmianie ulegną trasylinii 55AB, 77 i N7AB.linia 55A/BRETKINIA KUSOCIŃSKIEGO – Kusocińskiego, Retkińska, Maratońska, Waltera-Janke (zawraca przy Wyszyńskiego), Obywatelska, Politechniki,Wróblewskiego, Wólczańska, Radwańska, Brzeźna, Sienkiewicza, Wigury, Kilińskiego, Tymienieckiego, Przędzalniana, Milionowa, Śmigłego-Rydza, Przybyszewskiego, Tatrzańska, Felińskiego, Gojawiczyńskiej, (wariant B: Śląska – MŁYNEK), Dąbrowskiego - DW. ŁÓDŹ DĄBROWAZmiana tylko w podanym kierunku jazdy.linia 77STARE ROKICIE – św. Franciszka z Asyżu, Zenitowa, Pustynna, Nowe Sady, Obywatelska, Jana Pawła II, Parkowa, Inżynierska, Radwańska,Żeromskiego, Żwirki, Wólczańska, Radwańska, Brzeźna, Sienkiewicza, Wigury, Kilińskiego, Fabryczna, Przędzalniana, Tuwima, Kilińskiego, Rodziny Poznańskich – DW. ŁÓDŹ FABRYCZNAZmiana tylko w podanym kierunku jazdy.linia N7A/BRETKINIA – Popiełuszki, Maratońska, Waltera-Janke, Nowe Sady, Elektronowa, Obywatelska, Politechniki, Cieszyńska, Pabianicka, Politechniki,Wróblewskiego, Wólczańska, Radwańska, Kościuszki (zawraca przy ul. Zielonej), 6 Sierpnia, Gdańska, Próchnika, Rewolucji 1905r., Kilińskiego, Rodziny Poznańskich, P.O.W., Narutowicza, Konstytucyjna, (wariant B: Pomorska, Palki, Wojska Polskiego, Brzezińska, Janosika, Telefoniczna – TELEFONICZNA ZAJEZDNIA), Pomorska, Brzezińska – BRZEZIŃSKA KARKONOSKAZmiana tylko w podanym kierunku jazdy.Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 20Powrót...Wszystkie treści MPK-Łódź Spółka z o.o. opublikowane na niniejszej stronie są chronione prawem autorskim. Kopiowanie i rozpowszechnianie ich bez pisemnej zgody MPK-Łódź Spółka z o.o. dla celów innych niż potrzeby własne jest zabronione.
 
-KOMUNIKAT 226/25
+KOMUNIKAT 226/25
 W związku z rozpoczęciem prac drogowych na ul. Radwańskiej, na odcinku Wólczańska – Politechniki, na podstawie decyzji Zarządu Dróg i Transportu, od dnia21 września 2025 r.(niedziela), dla linii nocnej od nocy z 20/21 września 2025 r. (sb/nd) zmianie ulegną trasylinii 55AB, 77 i N7AB.linia 55A/BRETKINIA KUSOCIŃSKIEGO – Kusocińskiego, Retkińska, Maratońska, Waltera-Janke (zawraca przy Wyszyńskiego), Obywatelska, Politechniki,Wróblewskiego, Wólczańska, Radwańska, Brzeźna, Sienkiewicza, Wigury, Kilińskiego, Tymienieckiego, Przędzalniana, Milionowa, Śmigłego-Rydza, Przybyszewskiego, Tatrzańska, Felińskiego, Gojawiczyńskiej, (wariant B: Śląska – MŁYNEK), Dąbrowskiego - DW. ŁÓDŹ DĄBROWAZmiana tylko w podanym kierunku jazdy.linia 77STARE ROKICIE – św. Franciszka z Asyżu, Zenitowa, Pustynna, Nowe Sady, Obywatelska, Jana Pawła II, Parkowa, Inżynierska, Radwańska,Żeromskiego, Żwirki, Wólczańska, Radwańska, Brzeźna, Sienkiewicza, Wigury, Kilińskiego, Fabryczna, Przędzalniana, Tuwima, Kilińskiego, Rodziny Poznańskich – DW. ŁÓDŹ FABRYCZNAZmiana tylko w podanym kierunku jazdy.linia N7A/BRETKINIA – Popiełuszki, Maratońska, Waltera-Janke, Nowe Sady, Elektronowa, Obywatelska, Politechniki, Cieszyńska, Pabianicka, Politechniki,Wróblewskiego, Wólczańska, Radwańska, Kościuszki (zawraca przy ul. Zielonej), 6 Sierpnia, Gdańska, Próchnika, Rewolucji 1905r., Kilińskiego, Rodziny Poznańskich, P.O.W., Narutowicza, Konstytucyjna, (wariant B: Pomorska, Palki, Wojska Polskiego, Brzezińska, Janosika, Telefoniczna – TELEFONICZNA ZAJEZDNIA), Pomorska, Brzezińska – BRZEZIŃSKA KARKONOSKAZmiana tylko w podanym kierunku jazdy.Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 20
 
 linia 55A/BRETKINIA KUSOCIŃSKIEGO – Kusocińskiego, Retkińska, Maratońska, Waltera-Janke (zawraca przy Wyszyńskiego), Obywatelska, Politechniki,Wróblewskiego, Wólczańska, Radwańska, Brzeźna, Sienkiewicza, Wigury, Kilińskiego, Tymienieckiego, Przędzalniana, Milionowa, Śmigłego-Rydza, Przybyszewskiego, Tatrzańska, Felińskiego, Gojawiczyńskiej, (wariant B: Śląska – MŁYNEK), Dąbrowskiego - DW. ŁÓDŹ DĄBROWAZmiana tylko w podanym kierunku jazdy.linia 77STARE ROKICIE – św. Franciszka z Asyżu, Zenitowa, Pustynna, Nowe Sady, Obywatelska, Jana Pawła II, Parkowa, Inżynierska, Radwańska,Żeromskiego, Żwirki, Wólczańska, Radwańska, Brzeźna, Sienkiewicza, Wigury, Kilińskiego, Fabryczna, Przędzalniana, Tuwima, Kilińskiego, Rodziny Poznańskich – DW. ŁÓDŹ FABRYCZNAZmiana tylko w podanym kierunku jazdy.linia N7A/BRETKINIA – Popiełuszki, Maratońska, Waltera-Janke, Nowe Sady, Elektronowa, Obywatelska, Politechniki, Cieszyńska, Pabianicka, Politechniki,Wróblewskiego, Wólczańska, Radwańska, Kościuszki (zawraca przy ul. Zielonej), 6 Sierpnia, Gdańska, Próchnika, Rewolucji 1905r., Kilińskiego, Rodziny Poznańskich, P.O.W., Narutowicza, Konstytucyjna, (wariant B: Pomorska, Palki, Wojska Polskiego, Brzezińska, Janosika, Telefoniczna – TELEFONICZNA ZAJEZDNIA), Pomorska, Brzezińska – BRZEZIŃSKA KARKONOSKAZmiana tylko w podanym kierunku jazdy.Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 20
@@ -1013,16 +1013,16 @@ Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 
 ## UTRUDNIENIA W RUCHU (MPK)
 --------------------------------------------------------------------------------
 
-Linie: 5, 6
-Utrudnienie: Zatrzymanie ruchu tramwajów na ul. Rzgowskiej za ul. Leczniczą w kierunku do ul. Dąbrowskiego.
-Interwencja straży pożarnej.
+Linie: 2, 3, 6, 7, 11, 19
+Utrudnienie: Zatrzymanie ruchu tramwajów na al. Kościuszki przy ul. Zamenhofa w kierunku do al. Mickiewicza.
+Przyczyna techniczna.
 
 Zmiana sytuacji:
 Komunikacja tramwajowa została wznowiona.
 Tramwaje jadą opóźnione.
 Przepraszamy za utrudnienia.
 
-Data dodania: 2025-12-03 o godzinie 14:56
+Data dodania: 2025-12-03 o godzinie 15:44
 Źródło: https://www.mpk.lodz.pl/rozklady/utrudnienia.jsp
 
 
