@@ -11,6 +11,8 @@ import time
 import sys
 import os
 import json
+import io
+import contextlib
 from openai import OpenAI
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
@@ -214,7 +216,38 @@ def scraper_thread():
         should_save = True  # Flaga czy zapisać pliki
         try:
             print(f"[{time.strftime('%H:%M:%S')}] Pobieranie utrudnień MPK...")
-            utrudnienia = scraper.scrape_mpk_utrudnienia()
+
+            # Przechwyć stdout ze scrapera aby wykryć błędy połączenia
+            stdout_capture = io.StringIO()
+            with contextlib.redirect_stdout(stdout_capture):
+                utrudnienia = scraper.scrape_mpk_utrudnienia()
+
+            # Sprawdź czy w stdout jest błąd połączenia
+            scraper_output = stdout_capture.getvalue()
+            connection_error_keywords = [
+                "connection aborted",
+                "connectionreset",
+                "10054",
+                "gwałtownie zamknięte",
+                "zdalnego hosta",
+                "connectionerror",
+                "protocolerror",
+            ]
+
+            has_connection_error = any(
+                keyword in scraper_output.lower()
+                for keyword in connection_error_keywords
+            )
+
+            if has_connection_error:
+                should_save = False
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] Wykryto błąd połączenia w output scrapera"
+                )
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] NIE nadpisuję plików - zachowuję poprzednie dane"
+                )
+
             print(f"[{time.strftime('%H:%M:%S')}] Pobrano {len(utrudnienia)} utrudnień")
 
             # ZAWSZE przetwórz przez LLM aby wyciągnąć wyłączone linie (nawet jeśli brak utrudnień)
@@ -421,7 +454,7 @@ def get_all_data():
     """
     try:
         vehicle_feed = fetch_feed(VEHICLE_POSITIONS_URL)
-        trip_feed    = fetch_feed(TRIP_UPDATES_URL)
+        trip_feed = fetch_feed(TRIP_UPDATES_URL)
 
         joined_df = build_vehicles_trips_joined_from_feeds(vehicle_feed, trip_feed)
 
