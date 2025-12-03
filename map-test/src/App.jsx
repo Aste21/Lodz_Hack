@@ -33,6 +33,7 @@ function App() {
   const [fromAddress, setFromAddress] = useState("");
   const [toAddress, setToAddress] = useState("");
   const [vehicles, setVehicles] = useState([]);
+  const [showMap, setShowMap] = useState(false);
 
   const logAddresses = () => {
     console.log(`Skąd: ${fromAddress}, Dokąd: ${toAddress}`);
@@ -103,6 +104,57 @@ function App() {
     );
   };
 
+  const handleStartScreenClick = (e) => {
+    const clickX = e.clientX || (e.touches && e.touches[0]?.clientX) || (e.changedTouches && e.changedTouches[0]?.clientX);
+    if (!clickX) return;
+    
+    const screenWidth = window.innerWidth;
+    const centerX = screenWidth / 2;
+    
+    // Jeśli kliknięto po prawej stronie od centrum (niebieskiego kółka), przejdź do mapy
+    if (clickX > centerX) {
+      setShowMap(true);
+    } else {
+      // Po lewej stronie - chat (na razie placeholder)
+      // setShowChat(true);
+    }
+  };
+
+  const handleMapBottomClick = (e) => {
+    const clickX = e.clientX || (e.touches && e.touches[0]?.clientX) || (e.changedTouches && e.changedTouches[0]?.clientX);
+    if (!clickX) return;
+    
+    const screenWidth = window.innerWidth;
+    const centerX = screenWidth / 2;
+    const circleRadius = 30; // promień kółka (60px / 2)
+    const distanceFromCenter = Math.abs(clickX - centerX);
+    
+    // Jeśli kliknięto w kółko (w promieniu 30px od centrum), wróć do ekranu głównego
+    if (distanceFromCenter <= circleRadius) {
+      setShowMap(false);
+    } else if (clickX < centerX) {
+      // Po lewej stronie od kółka - chat (na razie placeholder)
+      // setShowChat(true);
+    }
+    // Po prawej stronie - pozostajemy na mapie (nic nie robimy)
+  };
+
+  // Ekran startowy
+  if (!showMap) {
+    return (
+      <div 
+        className="start-screen" 
+        onClick={handleStartScreenClick}
+        onTouchEnd={handleStartScreenClick}
+      >
+        <div className="start-bottom-line">
+          <img src="/bottom_line.png" alt="Bottom Line" className="bottom-line-image" />
+          <div className="start-circle"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <img src="/goratlo.png" alt="Header Image" className="header-image" />
@@ -118,6 +170,14 @@ function App() {
         <button className="filter-btn" onClick={() => setIsFilterOpen(true)}>
           <SlidersHorizontal size={22} strokeWidth={2.5} color="black" />
         </button>
+      </div>
+      <div 
+        className="map-bottom-line"
+        onClick={handleMapBottomClick}
+        onTouchEnd={handleMapBottomClick}
+      >
+        <img src="/bottom_line.png" alt="Bottom Line" className="bottom-line-image" />
+        <div className="map-circle"></div>
       </div>
 
       <div className="address-fields">

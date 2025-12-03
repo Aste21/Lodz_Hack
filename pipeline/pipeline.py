@@ -347,9 +347,17 @@ def build_vehicles_trips_joined_from_feeds(
 
     # tu_trip_id = trip_id → duplikat, więc wyrzucamy
     merged = merged.drop(columns=["tu_trip_id"])
+
+    # minuty opóźnienia
     merged["arrival_delay_minutes"] = merged["arrival_delay"].apply(seconds_to_minutes_custom)
 
-    # Możesz też wyrzucić stop_sequence z trips, jeśli nie chcesz duplikatu.
+    # (opcjonalnie)
     # merged = merged.drop(columns=["stop_sequence"])
+
+    # 🔥 TUTAJ robimy entity_id unikatowe:
+    if "timestamp" in merged.columns:
+        merged = merged.sort_values(by="timestamp", ascending=True)
+
+    merged = merged.drop_duplicates(subset=["entity_id"], keep="last")
 
     return merged
