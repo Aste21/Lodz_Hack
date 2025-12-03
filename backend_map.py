@@ -11,6 +11,8 @@ import time
 import sys
 import os
 import json
+import io
+import contextlib
 from openai import OpenAI
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
@@ -19,7 +21,7 @@ import requests
 import pandas as pd
 import numpy as np
 from pipeline.pipeline import (
-    build_datasets_from_feeds,
+    build_vehicles_trips_joined_from_feeds,
     fetch_feed,
 )
 
@@ -214,7 +216,38 @@ def scraper_thread():
         should_save = True  # Flaga czy zapisać pliki
         try:
             print(f"[{time.strftime('%H:%M:%S')}] Pobieranie utrudnień MPK...")
-            utrudnienia = scraper.scrape_mpk_utrudnienia()
+
+            # Przechwyć stdout ze scrapera aby wykryć błędy połączenia
+            stdout_capture = io.StringIO()
+            with contextlib.redirect_stdout(stdout_capture):
+                utrudnienia = scraper.scrape_mpk_utrudnienia()
+
+            # Sprawdź czy w stdout jest błąd połączenia
+            scraper_output = stdout_capture.getvalue()
+            connection_error_keywords = [
+                "connection aborted",
+                "connectionreset",
+                "10054",
+                "gwałtownie zamknięte",
+                "zdalnego hosta",
+                "connectionerror",
+                "protocolerror",
+            ]
+
+            has_connection_error = any(
+                keyword in scraper_output.lower()
+                for keyword in connection_error_keywords
+            )
+
+            if has_connection_error:
+                should_save = False
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] Wykryto błąd połączenia w output scrapera"
+                )
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] NIE nadpisuję plików - zachowuję poprzednie dane"
+                )
+
             print(f"[{time.strftime('%H:%M:%S')}] Pobrano {len(utrudnienia)} utrudnień")
 
             # ZAWSZE przetwórz przez LLM aby wyciągnąć wyłączone linie (nawet jeśli brak utrudnień)
@@ -417,33 +450,19 @@ def fetch_gtfs_feed(url: str) -> gtfs_realtime_pb2.FeedMessage:
 def get_all_data():
     """
     Pobiera live GTFS-RT z Łodzi, przepuszcza przez pipeline
-    i zwraca:
-    {
-      "vehicles": [...],
-      "trips": [...]
-    }
+    i zwraca JEDEN JSON (vehicles + trips połączone).
     """
     try:
         vehicle_feed = fetch_feed(VEHICLE_POSITIONS_URL)
         trip_feed = fetch_feed(TRIP_UPDATES_URL)
 
-        vehicles_df, trips_df = build_datasets_from_feeds(vehicle_feed, trip_feed)
+        joined_df = build_vehicles_trips_joined_from_feeds(vehicle_feed, trip_feed)
 
-        # Zamień NaN na None (null w JSON) aby uniknąć błędów serializacji
-        # Użyj where() do zamiany NaN na None
-        vehicles_df = vehicles_df.where(pd.notnull(vehicles_df), None)
-        trips_df = trips_df.where(pd.notnull(trips_df), None)
+        # Zamiana wszystkich NaN na None (null w JSON)
+        joined_df = joined_df.where(pd.notnull(joined_df), None)
 
-        # Dodatkowo użyj replace() dla różnych typów NaN
-        vehicles_df = vehicles_df.replace(
-            {np.nan: None, pd.NA: None, float("nan"): None}
-        )
-        trips_df = trips_df.replace({np.nan: None, pd.NA: None, float("nan"): None})
+        return joined_df.to_dict(orient="records")
 
-        return {
-            "vehicles": vehicles_df.to_dict(orient="records"),
-            "trips": trips_df.to_dict(orient="records"),
-        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pipeline error: {e}")
 
