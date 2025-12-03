@@ -319,7 +319,7 @@ def build_vehicles_trips_joined_from_feeds(
     - vehicles_df LEFT JOIN trips_df
     - join po (trip_id, current_stop_sequence) = (tu_trip_id, stop_sequence)
     - z trips dodajemy tylko kolumny, których nie ma w vehicles:
-      tu_direction_id, tu_start_time, arrival_delay, stop_id, stop_sequence, schedule_relationship
+      tu_direction_id, arrival_delay, stop_id, stop_sequence, schedule_relationship
     """
 
     vehicles_df, trips_df = build_datasets_from_feeds(vehicle_feed, trip_feed)
@@ -330,7 +330,6 @@ def build_vehicles_trips_joined_from_feeds(
             "tu_trip_id",
             "stop_sequence",
             "tu_direction_id",
-            "tu_start_time",
             "arrival_delay",
             "stop_id",
             "schedule_relationship",
