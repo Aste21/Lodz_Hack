@@ -29,7 +29,15 @@ function App() {
   const [stops, setStops] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedLines, setSelectedLines] = useState([]);
+
+  const logAddresses = () => {
+  console.log(`Skąd: ${fromAddress}, Dokąd: ${toAddress}`);
+};
+
   const [search, setSearch] = useState("");
+const [fromAddress, setFromAddress] = useState("");
+const [toAddress, setToAddress] = useState("");
+
 
   const vehicles = [
     { id: "B12", type: "bus", lat: 51.7511, lng: 19.452 },
@@ -81,6 +89,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <img src="/goratlo.png" alt="Header Image" className="header-image" />
       <div className="map-wrapper">
         {!loading && (
           <OpenStreetMap
@@ -96,15 +105,33 @@ function App() {
       </div>
 
       <div className="address-fields">
-        <div className="address-row">
-          <div className="addr-dot from-dot"></div>
-          <div className="addr-box">Skąd?</div>
-        </div>
+<div className="address-row">
+  <div className="addr-dot from-dot"></div>
+  <input
+    className="addr-box"
+    value={fromAddress}
+    onChange={(e) => setFromAddress(e.target.value)}
+    placeholder="Skąd?"
+  />
+</div>
 
-        <div className="address-row">
-          <div className="addr-dot to-dot"></div>
-          <div className="addr-box">Dokąd?</div>
-        </div>
+<div className="address-row">
+  <div className="addr-dot to-dot"></div>
+  <input
+    className="addr-box"
+    value={toAddress}
+    onChange={(e) => setToAddress(e.target.value)}
+    placeholder="Dokąd?"
+  />
+</div>
+
+{(fromAddress && toAddress) && (
+  <div className="address-row">
+    <button className="log-btn" onClick={logAddresses}>
+      Szukaj trasy
+    </button>
+  </div>
+)}
       </div>
 
       <div className={`filter-panel ${isFilterOpen ? "open" : ""}`}>

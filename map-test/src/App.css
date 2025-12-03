@@ -1,3 +1,10 @@
+body {
+  background-color: rgb(255,255,255); 
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif; 
+}
+
 .app-container {
   width: 100%;
   max-width: 420px;
@@ -9,11 +16,21 @@
   align-items: center;
   padding: 0 10px;
   box-sizing: border-box;
+ background: linear-gradient(to center, white, rgb(242, 242, 242));
+    position: relative;
+     overflow: hidden;
 }
+.header-image {
+  width: 100%; 
+  height: auto; 
+  object-fit: cover;  
+  margin-bottom: 10px;  
+}
+
 .map-wrapper {
   position: relative;
   width: 350px;
-  height: 700px;
+  height: 600px;
   border: 10px solid black;
   border-radius: 20px;
   overflow: hidden;
@@ -47,6 +64,7 @@
 
 .address-row {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 12px;
 }
@@ -258,4 +276,14 @@
 .fp-selected,
 .fp-empty {
   color: black !important;
+}
+.log-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
 }
