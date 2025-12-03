@@ -283,3 +283,48 @@ def build_datasets_from_feeds(
     ].copy()
 
     return vehicles_df, trips_df
+
+
+def build_vehicles_trips_joined_from_feeds(
+    vehicle_feed: gtfs_realtime_pb2.FeedMessage,
+    trip_feed: gtfs_realtime_pb2.FeedMessage,
+) -> pd.DataFrame:
+    """
+    Buduje JEDEN dataframe:
+    - vehicles_df LEFT JOIN trips_df
+    - join po (trip_id, current_stop_sequence) = (tu_trip_id, stop_sequence)
+    - z trips dodajemy tylko kolumny, których nie ma w vehicles:
+      tu_direction_id, tu_start_time, arrival_delay, stop_id, stop_sequence, schedule_relationship
+    """
+
+    vehicles_df, trips_df = build_datasets_from_feeds(vehicle_feed, trip_feed)
+
+    # tylko potrzebne kolumny z trips
+    trips_small = trips_df[
+        [
+            "tu_trip_id",
+            "stop_sequence",
+            "tu_direction_id",
+            "tu_start_time",
+            "arrival_delay",
+            "stop_id",
+            "schedule_relationship",
+        ]
+    ].copy()
+
+    # LEFT JOIN: vehicles  ⟵  trips
+    merged = vehicles_df.merge(
+        trips_small,
+        left_on=["trip_id", "current_stop_sequence"],
+        right_on=["tu_trip_id", "stop_sequence"],
+        how="left",
+        suffixes=("", "_trip"),
+    )
+
+    # tu_trip_id = trip_id → duplikat, więc wyrzucamy
+    merged = merged.drop(columns=["tu_trip_id"])
+
+    # Możesz też wyrzucić stop_sequence z trips, jeśli nie chcesz duplikatu.
+    # merged = merged.drop(columns=["stop_sequence"])
+
+    return merged
