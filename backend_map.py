@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from google.transit import gtfs_realtime_pb2
 import requests
 import pandas as pd
+import numpy as np
 from pipeline.pipeline import (
     build_datasets_from_feeds,
     fetch_feed,
@@ -427,6 +428,17 @@ def get_all_data():
         trip_feed = fetch_feed(TRIP_UPDATES_URL)
 
         vehicles_df, trips_df = build_datasets_from_feeds(vehicle_feed, trip_feed)
+
+        # Zamień NaN na None (null w JSON) aby uniknąć błędów serializacji
+        # Użyj where() do zamiany NaN na None
+        vehicles_df = vehicles_df.where(pd.notnull(vehicles_df), None)
+        trips_df = trips_df.where(pd.notnull(trips_df), None)
+
+        # Dodatkowo użyj replace() dla różnych typów NaN
+        vehicles_df = vehicles_df.replace(
+            {np.nan: None, pd.NA: None, float("nan"): None}
+        )
+        trips_df = trips_df.replace({np.nan: None, pd.NA: None, float("nan"): None})
 
         return {
             "vehicles": vehicles_df.to_dict(orient="records"),
