@@ -273,7 +273,6 @@ def build_datasets_from_feeds(
             "tu_trip_id",
             "tu_route_id",
             "tu_direction_id",
-            "tu_start_time",
             "arrival_delay",
             "stop_id",
             "stop_sequence",
