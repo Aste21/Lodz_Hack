@@ -1,6 +1,6 @@
 ================================================================================
 AKTUALNE INFORMACJE O KOMUNIKACJI MIEJSKIEJ W ŁODZI
-Zaktualizowano: 2025-12-03T18:39:03.477153
+Zaktualizowano: 2025-12-03T23:13:38.401025
 ================================================================================
 
 
@@ -29,11 +29,11 @@ Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 
 Komunikat: 292/25
 
 Szczegóły:
-W dniu 4 grudnia 2025r. (czwartek)  w godz. ok. 09:00 - 14:00 zmiana trasy linii 72A/B
+W dniu 4 grudnia 2025r. (czwartek)  w godz. ok. 09:00 - 18:00 zmiana trasy linii 72A/B
 
 Komunikat 292/25
 W związku z prowadzeniem cząstkowych prac drogowych na ul. Mieczników, na podstawie decyzji Zarządu Dróg i Transportu
-w dniu 4 grudnia 2025 roku (czwartek)  w godz. ok. 09:00 – 14:00
+w dniu 4 grudnia 2025 roku (czwartek)  w godz. ok. 09:00 – 18:00
 zmianie ulegnie trasa linii 72A/B.
 Dodatkowo zawieszeniu ulegnie przystanek
 Huta Jagodnica (1649)
@@ -1013,16 +1013,8 @@ Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 
 ## UTRUDNIENIA W RUCHU (MPK)
 --------------------------------------------------------------------------------
 
-Linie: 2, 3, 6, 7, 11, 19
-Utrudnienie: Zatrzymanie ruchu tramwajów na al. Kościuszki przy ul. Zamenhofa w kierunku do al. Mickiewicza.
-Przyczyna techniczna.
-
-Zmiana sytuacji:
-Komunikacja tramwajowa została wznowiona.
-Tramwaje jadą opóźnione.
-Przepraszamy za utrudnienia.
-
-Data dodania: 2025-12-03 o godzinie 15:44
+Miejskie Przedsiębiorstwo Komunikacyjne - Łódź Spółka z o.o. 90-132 Łódź, ul Tramwajowa 6
+Miejskie Przedsiębiorstwo Komunikacyjne - Łódź Spółka z o.o. 90-132 Łódź, ul Tramwajowa 6
 Źródło: https://www.mpk.lodz.pl/rozklady/utrudnienia.jsp
 
 

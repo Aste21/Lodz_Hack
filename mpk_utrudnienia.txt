@@ -1,15 +1,9 @@
 ================================================================================
 UTRUDNIENIA W RUCHU MPK ŁÓDŹ
-Zaktualizowano: 2025-12-03 21:50:37
+Zaktualizowano: 2025-12-03 23:56:04
 ================================================================================
 
 --- Utrudnienie 1 ---
-Linie: 2, 3, 6, 7, 11, 19
-Utrudnienie: Zatrzymanie ruchu tramwajów na al. Kościuszki przy ul. Zamenhofa w kierunku do al. Mickiewicza.
-Przyczyna techniczna.
-Zmiana sytuacji: Komunikacja tramwajowa została wznowiona.
-Tramwaje jadą opóźnione.
-Przepraszamy za utrudnienia.
 Źródło: https://www.mpk.lodz.pl/rozklady/utrudnienia.jsp
 
 

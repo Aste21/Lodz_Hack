@@ -29,20 +29,15 @@ function App() {
   const [stops, setStops] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedLines, setSelectedLines] = useState([]);
+  const [search, setSearch] = useState("");
+  const [fromAddress, setFromAddress] = useState("");
+  const [toAddress, setToAddress] = useState("");
+  const [vehicles, setVehicles] = useState([]);
 
   const logAddresses = () => {
-  console.log(`Skąd: ${fromAddress}, Dokąd: ${toAddress}`);
-};
+    console.log(`Skąd: ${fromAddress}, Dokąd: ${toAddress}`);
+  };
 
-  const [search, setSearch] = useState("");
-const [fromAddress, setFromAddress] = useState("");
-const [toAddress, setToAddress] = useState("");
-
-
-  const vehicles = [
-    { id: "B12", type: "bus", lat: 51.7511, lng: 19.452 },
-    { id: "T5", type: "tram", lat: 51.7515, lng: 19.458 }
-  ];
 
   useEffect(() => {
     fetch("/stops.txt")
@@ -77,6 +72,27 @@ const [toAddress, setToAddress] = useState("");
       console.error("Geolocation is not supported by this browser.");
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchVehicles = () => {
+      fetch("http://localhost:8001/data")
+        .then((response) => response.json())
+        .then((data) => {
+          // setVehicles(data);
+          // console.log(data)
+        })
+        .catch((err) => console.error("Error fetching vehicles:", err));
+    };
+
+    // Fetch immediately on mount
+    fetchVehicles();
+
+    // Then fetch every 10 seconds
+    const interval = setInterval(fetchVehicles, 10000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const toggleLine = (line) => {

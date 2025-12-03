@@ -12,21 +12,21 @@ L.Icon.Default.mergeOptions({
 
 // Custom icons for bus and tram
 const busIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/61/61231.png',
+  iconUrl: '/bus-front.svg',
   iconSize: [25, 25],
   iconAnchor: [12, 25],
   popupAnchor: [0, -20],
 });
 
 const tramIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/33/33622.png',
+  iconUrl: '/tram-front.svg',
   iconSize: [25, 25],
   iconAnchor: [12, 25],
   popupAnchor: [0, -20],
 });
 
 const stopIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/33/33635.png',
+  iconUrl: '/milestone.svg',
   iconSize: [25, 25],
   iconAnchor: [12, 25],
   popupAnchor: [0, -20],
@@ -54,11 +54,11 @@ export default function OpenStreetMap({
       {/* Vehicle markers */}
       {vehicles.map((v) => (
         <Marker
-          key={v.id}
+          key={v.entity_id}
           position={[v.lat, v.lng]}
-          icon={v.type === "tram" ? tramIcon : busIcon}
+          icon={v.route_type.includes("autobus") ? busIcon : tramIcon}
         >
-          <Popup>{v.type.toUpperCase()} {v.id}</Popup>
+          <Popup>{v.route_type.toUpperCase()} {v.entity_id}</Popup>
         </Marker>
       ))}
 

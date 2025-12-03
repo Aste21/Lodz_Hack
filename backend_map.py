@@ -24,6 +24,7 @@ from pipeline.pipeline import (
     build_vehicles_trips_joined_from_feeds,
     fetch_feed,
 )
+from fastapi.middleware.cors import CORSMiddleware
 
 # Załaduj zmienne środowiskowe
 load_dotenv()
@@ -58,6 +59,13 @@ TRIP_UPDATES_URL = (
 openai_client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE)
 
 app = FastAPI(title="Backend Map API", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Scraper
 scraper = TrafficInfoScraper()
