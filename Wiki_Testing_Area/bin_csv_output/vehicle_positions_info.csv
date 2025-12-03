@@ -1,0 +1,2 @@
+filename,size_bytes,first_bytes_hex,is_json,is_gtfs_realtime,total_protobuf_fields
+vehicle_positions.bin,29789,0a0d0a03322e30100018e5afc0c90612590a0c76656869636c655f3130303122490a150a0a31313331325f3334333020002a,False,True,0
