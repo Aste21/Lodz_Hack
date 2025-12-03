@@ -118,21 +118,26 @@ async def chat(request: ChatRequest):
         # Wyciągnij źródła
         sources = extract_sources(traffic_info)
 
-        system_prompt = f"""Jesteś pomocnym asystentem informacyjnym dla mieszkańców Łodzi. Odpowiadasz na pytania o komunikację miejską w Łodzi.
+        system_prompt = f"""Jesteś pomocnym asystentem informacyjnym dla mieszkańców Łodzi. Odpowiadasz TYLKO na pytania o Łodzi.
 
 WAŻNE ZASADY:
 1. Odpowiadaj TYLKO w języku naturalnym (polskim), NIE generuj kodu ani JSON
 2. Odpowiadaj krótko, konkretnie i na temat
 3. Używaj TYLKO informacji z poniższego kontekstu
-4. Jeśli linia/ulica jest wymieniona w kontekście (np. "Linie: 2, 3, 6"), oznacza to że ma utrudnienia lub zmiany
-5. Jeśli linia/ulica NIE jest wymieniona w kontekście, oznacza to że działa normalnie
-6. ZAWSZE na końcu odpowiedzi podaj źródła (linki) z których pochodzą informacje, które użyłeś
-7. NIGDY nie zwracaj JSON - tylko tekstową odpowiedź
+4. Jeśli pytanie NIE jest związane z Łodzią, komunikacją miejską, tramwajami, autobusami, ulicami w Łodzi - powiedz: "Przepraszam, ale moim zadaniem jest odpowiadanie tylko na pytania dotyczące Łodzi. Nie mogę pomóc w innych tematach."
+5. Jeśli linia/ulica jest wymieniona w kontekście (np. "Linie: 2, 3, 6"), oznacza to że ma utrudnienia lub zmiany
+6. Jeśli linia/ulica NIE jest wymieniona w kontekście, oznacza to że działa normalnie
+7. Podawaj źródła (linki) TYLKO gdy używasz konkretnych faktów z kontekstu - dodaj je bezpośrednio przy danym fakcie w formacie: "([źródło: link])" lub na końcu sekcji z faktami
+8. NIE dodawaj źródeł jeśli nie używasz żadnych konkretnych informacji z kontekstu
+9. NIGDY nie zwracaj JSON - tylko tekstową odpowiedź
+
+DOSTĘPNE ŹRÓDŁA (używaj ich gdy podajesz konkretne fakty):
+{chr(10).join(f"- {source}" for source in sources[:20])}
 
 AKTUALNE INFORMACJE O KOMUNIKACJI W ŁODZI:
 {traffic_info}
 
-TERAZ: Odpowiedz na pytanie użytkownika używając POWYŻSZYCH informacji. Jeśli linia/ulica jest wymieniona w informacjach, oznacza to że ma utrudnienia lub zmiany. Jeśli nie jest wymieniona, działa normalnie. Na końcu odpowiedzi ZAWSZE dodaj sekcję "Źródła:" z linkami do stron z których pochodzą informacje. Odpowiadaj w języku naturalnym, NIE generuj kodu ani JSON!"""
+TERAZ: Odpowiedz na pytanie użytkownika. Jeśli pytanie nie dotyczy komunikacji w Łodzi, grzecznie odmów. Jeśli używasz konkretnych faktów z powyższych informacji, podaj źródło przy danym fakcie. Odpowiadaj w języku naturalnym, NIE generuj kodu ani JSON!"""
 
         messages.insert(0, {"role": "system", "content": system_prompt})
 
@@ -149,24 +154,46 @@ TERAZ: Odpowiedz na pytanie użytkownika używając POWYŻSZYCH informacji. Jeś
         if not response_text:
             raise HTTPException(status_code=500, detail="Brak odpowiedzi z OpenAI API")
 
-        # Dodaj źródła na końcu jeśli są dostępne i nie zostały już dodane przez model
-        if request.include_traffic_info and sources:
-            # Sprawdź czy model już dodał źródła
-            if "Źródło" not in response_text and "Źródła" not in response_text:
-                sources_text = "\n\nŹródła:\n" + "\n".join(
-                    f"- {source}" for source in sources[:10]
-                )  # Max 10 źródeł
-                response_text += sources_text
-            # Jeśli model dodał źródła, ale są niepełne, dodaj pozostałe
-            elif len(sources) > 0:
-                # Sprawdź które źródła już są w odpowiedzi
-                existing_sources = [s for s in sources if s in response_text]
-                missing_sources = [s for s in sources if s not in existing_sources]
-                if missing_sources:
-                    additional_sources = "\n" + "\n".join(
-                        f"- {source}" for source in missing_sources[:5]
-                    )
-                    response_text += additional_sources
+        # Nie dodawaj źródeł automatycznie - model powinien je podawać tylko przy konkretnych faktach
+        # Sprawdzamy tylko czy odpowiedź jest związana z tematem
+        if request.include_traffic_info:
+            # Jeśli model odmówił odpowiedzi (pytanie niezwiązane z tematem), to OK
+            if "przepraszam" in response_text.lower() and (
+                "zadaniem" in response_text.lower()
+                or "nie mogę" in response_text.lower()
+            ):
+                # Model poprawnie odmówił - nie dodawaj nic
+                pass
+            # Jeśli odpowiedź zawiera konkretne informacje o komunikacji, ale brak źródeł - możemy dodać przypis
+            # Ale tylko jeśli model faktycznie użył informacji z kontekstu (np. wymienił numer linii, ulicę, itp.)
+            elif any(
+                keyword in response_text.lower()
+                for keyword in [
+                    "linia",
+                    "tramwaj",
+                    "autobus",
+                    "ul.",
+                    "ulica",
+                    "przystanek",
+                    "utrudnienie",
+                    "zmiana",
+                ]
+            ):
+                # Sprawdź czy są już źródła w odpowiedzi
+                if (
+                    "http" not in response_text
+                    and "Źródło" not in response_text
+                    and "źródło" not in response_text
+                ):
+                    # Model użył informacji ale nie podał źródeł - możemy dodać przypis na końcu
+                    # Ale tylko jeśli to faktycznie odpowiedź o komunikacji
+                    if (
+                        len(response_text) > 50
+                    ):  # Nie dodawaj do bardzo krótkich odpowiedzi
+                        sources_text = "\n\nŹródła informacji:\n" + "\n".join(
+                            f"- {source}" for source in sources[:5]
+                        )
+                        response_text += sources_text
 
         return ChatResponse(message=response_text)
 
