@@ -1,0 +1,11 @@
+traffic_info.txt
+traffic_info.json
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+*.log
+
