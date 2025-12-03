@@ -450,7 +450,7 @@ def fetch_gtfs_feed(url: str) -> gtfs_realtime_pb2.FeedMessage:
 def get_all_data():
     """
     Pobiera live GTFS-RT z Łodzi, przepuszcza przez pipeline
-    i zwraca JEDNĄ listę rekordów (vehicles + trips połączone LEFT JOIN).
+    i zwraca JEDEN JSON (vehicles + trips połączone).
     """
     try:
         vehicle_feed = fetch_feed(VEHICLE_POSITIONS_URL)
@@ -458,8 +458,11 @@ def get_all_data():
 
         joined_df = build_vehicles_trips_joined_from_feeds(vehicle_feed, trip_feed)
 
-        # jeden DataFrame -> jedna lista rekordów
+        # Zamiana wszystkich NaN na None (null w JSON)
+        joined_df = joined_df.where(pd.notnull(joined_df), None)
+
         return joined_df.to_dict(orient="records")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pipeline error: {e}")
 
