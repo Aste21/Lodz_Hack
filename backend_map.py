@@ -13,6 +13,15 @@ import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
+from fastapi.responses import JSONResponse
+from google.transit import gtfs_realtime_pb2
+import requests
+import pandas as pd
+from fastapi_utils.tasks import repeat_every
+from pipeline.pipeline import (
+    build_datasets_from_feeds,
+    fetch_feed,
+)
 
 # Załaduj zmienne środowiskowe
 load_dotenv()
@@ -31,6 +40,9 @@ if not OPENAI_API_KEY:
 
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
 CHEAP_MODEL = os.getenv("OPENAI_CHEAP_MODEL", "gpt-3.5-turbo")  # Tani model
+
+VEHICLE_POSITIONS_URL = "https://otwarte.miasto.lodz.pl/wp-content/uploads/2025/06/vehicle_positions.bin"
+TRIP_UPDATES_URL = "https://otwarte.miasto.lodz.pl/wp-content/uploads/2025/06/trip_updates.bin"
 
 # Inicjalizuj klienta OpenAI
 openai_client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE)
@@ -297,3 +309,34 @@ if __name__ == "__main__":
         reload_dirs=[str(project_root)],  # Obserwuj katalog główny projektu
         reload_includes=["*.py"],  # Obserwuj tylko pliki Python
     )
+
+
+def fetch_gtfs_feed(url: str) -> gtfs_realtime_pb2.FeedMessage:
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    feed = gtfs_realtime_pb2.FeedMessage()
+    feed.ParseFromString(resp.content)
+    return feed
+
+@app.get("/data")
+def get_all_data():
+    """
+    Pobiera live GTFS-RT z Łodzi, przepuszcza przez pipeline
+    i zwraca:
+    {
+      "vehicles": [...],
+      "trips": [...]
+    }
+    """
+    try:
+        vehicle_feed = fetch_feed(VEHICLE_POSITIONS_URL)
+        trip_feed    = fetch_feed(TRIP_UPDATES_URL)
+
+        vehicles_df, trips_df = build_datasets_from_feeds(vehicle_feed, trip_feed)
+
+        return {
+            "vehicles": vehicles_df.to_dict(orient="records"),
+            "trips": trips_df.to_dict(orient="records"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {e}")
