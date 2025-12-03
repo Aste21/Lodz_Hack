@@ -32,6 +32,10 @@ if str(project_root) not in sys.path:
 
 from Assistant.traffic_scraper import TrafficInfoScraper
 
+# Importy dla tras
+from routes_api.google_maps_client import get_all_routes, format_route_response
+from routes_api.route_filter import filter_routes_by_disabled_lines, find_best_route
+
 # Konfiguracja OpenAI dla taniego modelu
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
@@ -206,6 +210,7 @@ def scraper_thread():
     print("Wątek scrapera uruchomiony - pobieranie utrudnień co minutę...")
 
     while True:
+        should_save = True  # Flaga czy zapisać pliki
         try:
             print(f"[{time.strftime('%H:%M:%S')}] Pobieranie utrudnień MPK...")
             utrudnienia = scraper.scrape_mpk_utrudnienia()
@@ -229,47 +234,101 @@ def scraper_thread():
                     "disabled_lines": [],
                 }
 
-            # ZAWSZE zapisz do pliku tekstowego (nawet jeśli brak utrudnień)
-            save_utrudnienia_to_file(utrudnienia, UTRUDS_FILE, structured_data)
-            print(f"[{time.strftime('%H:%M:%S')}] Zapisano do {UTRUDS_FILE}")
+            # Zapisz pliki tylko jeśli should_save jest True
+            if should_save:
+                # ZAWSZE zapisz do pliku tekstowego (nawet jeśli brak utrudnień)
+                save_utrudnienia_to_file(utrudnienia, UTRUDS_FILE, structured_data)
+                print(f"[{time.strftime('%H:%M:%S')}] Zapisano do {UTRUDS_FILE}")
 
-            # ZAWSZE zapisz do pliku JSON (automatycznie razem z TXT - zawsze po zapisie TXT)
-            # Upewnij się że structured_data istnieje
-            if not structured_data:
+                # ZAWSZE zapisz do pliku JSON (automatycznie razem z TXT - zawsze po zapisie TXT)
+                # Upewnij się że structured_data istnieje
+                if not structured_data:
+                    print(
+                        f"[{time.strftime('%H:%M:%S')}] structured_data jest None, ustawiam pusty dict"
+                    )
+                    structured_data = {
+                        "disabled_lines": [],
+                    }
+
+                # Zawsze zapisz JSON (niezależnie od tego czy structured_data jest pełne czy puste)
                 print(
-                    f"[{time.strftime('%H:%M:%S')}] structured_data jest None, ustawiam pusty dict"
+                    f"[{time.strftime('%H:%M:%S')}] Próba zapisu JSON do {UTRUDS_JSON_FILE}..."
                 )
-                structured_data = {
-                    "disabled_lines": [],
-                }
+                result = save_utrudnienia_json(structured_data, UTRUDS_JSON_FILE)
+                if result:
+                    print(
+                        f"[{time.strftime('%H:%M:%S')}] Zapisano JSON do {UTRUDS_JSON_FILE}"
+                    )
+                else:
+                    print(
+                        f"[{time.strftime('%H:%M:%S')}] BŁĄD: Nie udało się zapisać JSON do {UTRUDS_JSON_FILE}"
+                    )
 
-            # Zawsze zapisz JSON (niezależnie od tego czy structured_data jest pełne czy puste)
+        except (
+            ConnectionError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            requests.exceptions.RequestException,
+        ) as e:
+            should_save = False
             print(
-                f"[{time.strftime('%H:%M:%S')}] Próba zapisu JSON do {UTRUDS_JSON_FILE}..."
+                f"[{time.strftime('%H:%M:%S')}] Błąd połączenia podczas pobierania utrudnień: {e}"
             )
-            result = save_utrudnienia_json(structured_data, UTRUDS_JSON_FILE)
-            if result:
-                print(
-                    f"[{time.strftime('%H:%M:%S')}] Zapisano JSON do {UTRUDS_JSON_FILE}"
-                )
-            else:
-                print(
-                    f"[{time.strftime('%H:%M:%S')}] BŁĄD: Nie udało się zapisać JSON do {UTRUDS_JSON_FILE}"
-                )
+            print(
+                f"[{time.strftime('%H:%M:%S')}] NIE nadpisuję plików - zachowuję poprzednie dane"
+            )
+            # NIE zapisujemy plików przy błędzie połączenia - zachowujemy poprzednie dane
 
         except Exception as e:
-            print(
-                f"[{time.strftime('%H:%M:%S')}] Błąd podczas pobierania/przetwarzania utrudnień: {e}"
-            )
-            # W razie błędu, zapisz pusty JSON żeby plik zawsze istniał
-            try:
-                empty_data = {
-                    "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "disabled_lines": [],
-                }
-                save_utrudnienia_json(empty_data, UTRUDS_JSON_FILE)
-            except:
-                pass
+            error_msg = str(e).lower()
+            # Sprawdź czy to błąd związany z połączeniem
+            if any(
+                keyword in error_msg
+                for keyword in [
+                    "connection",
+                    "connect",
+                    "timeout",
+                    "reset",
+                    "aborted",
+                    "10054",
+                    "gwałtownie zamknięte",
+                    "zdalnego hosta",
+                ]
+            ):
+                should_save = False
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] Błąd połączenia podczas pobierania utrudnień: {e}"
+                )
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] NIE nadpisuję plików - zachowuję poprzednie dane"
+                )
+            else:
+                # Dla innych błędów też nie nadpisujemy jeśli pliki już istnieją
+                if UTRUDS_FILE.exists() and UTRUDS_JSON_FILE.exists():
+                    should_save = False
+                    print(
+                        f"[{time.strftime('%H:%M:%S')}] Błąd podczas pobierania/przetwarzania utrudnień: {e}"
+                    )
+                    print(
+                        f"[{time.strftime('%H:%M:%S')}] NIE nadpisuję plików - zachowuję poprzednie dane"
+                    )
+                else:
+                    # Jeśli pliki nie istnieją, zapisz puste dane żeby pliki powstały
+                    print(
+                        f"[{time.strftime('%H:%M:%S')}] Błąd podczas pobierania/przetwarzania utrudnień: {e}"
+                    )
+                    print(
+                        f"[{time.strftime('%H:%M:%S')}] Pliki nie istnieją - zapisuję puste dane"
+                    )
+                    try:
+                        empty_data = {
+                            "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                            "disabled_lines": [],
+                        }
+                        save_utrudnienia_json(empty_data, UTRUDS_JSON_FILE)
+                        save_utrudnienia_to_file([], UTRUDS_FILE, empty_data)
+                    except:
+                        pass
 
         # Czekaj 60 sekund przed następnym pobraniem
         time.sleep(60)
@@ -375,3 +434,74 @@ def get_all_data():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pipeline error: {e}")
+
+
+@app.get("/route")
+def get_route(origin: str, destination: str):
+    """
+    Zwraca trasę komunikacją miejską z punktu A do B.
+    Automatycznie filtruje trasy które używają wyłączonych linii MPK.
+
+    Args:
+        origin: Punkt startowy (adres lub współrzędne)
+        destination: Punkt docelowy (adres lub współrzędne)
+
+    Returns:
+        Dict z trasą (najlepszą dostępną, bez wyłączonych linii)
+    """
+    try:
+        # Pobierz wszystkie dostępne trasy
+        all_routes = get_all_routes(origin, destination)
+
+        if not all_routes:
+            raise HTTPException(
+                status_code=404, detail="Nie znaleziono tras dla podanych punktów"
+            )
+
+        # Pobierz wyłączone linie z pliku JSON
+        disabled_lines = []
+        if UTRUDS_JSON_FILE.exists():
+            try:
+                with open(UTRUDS_JSON_FILE, "r", encoding="utf-8") as f:
+                    utrudnienia_data = json.load(f)
+                    disabled_lines = utrudnienia_data.get("disabled_lines", [])
+            except Exception as e:
+                print(f"Błąd odczytu wyłączonych linii: {e}")
+
+        # Filtruj trasy - usuń te które używają wyłączonych linii
+        filtered_routes = None
+        if disabled_lines:
+            filtered_routes = filter_routes_by_disabled_lines(
+                all_routes, disabled_lines
+            )
+            if not filtered_routes:
+                # Jeśli wszystkie trasy używają wyłączonych linii, zwróć pierwszą z ostrzeżeniem
+                return {
+                    "route": format_route_response(all_routes[0]),
+                    "warning": f"Wszystkie trasy używają wyłączonych linii: {', '.join(disabled_lines)}. Zwrócono najlepszą dostępną trasę.",
+                    "disabled_lines": disabled_lines,
+                }
+            routes_to_choose = filtered_routes
+        else:
+            # Brak wyłączonych linii - użyj wszystkich tras
+            routes_to_choose = all_routes
+
+        # Wybierz najlepszą trasę (najkrótszą czasowo)
+        best_route = find_best_route(routes_to_choose)
+
+        if not best_route:
+            raise HTTPException(status_code=500, detail="Błąd podczas wyboru trasy")
+
+        return {
+            "route": format_route_response(best_route),
+            "disabled_lines": disabled_lines,
+            "filtered": len(disabled_lines) > 0
+            and len(filtered_routes) < len(all_routes),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Błąd podczas pobierania trasy: {str(e)}"
+        )
