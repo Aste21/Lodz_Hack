@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import math
 import pandas as pd
 import requests
 from google.transit import gtfs_realtime_pb2
@@ -221,6 +221,32 @@ def add_stop_names_to_vehicles(vp_df: pd.DataFrame, stops_path: Path = STOPS_PAT
 
     return merged
 
+import math
+import pandas as pd
+
+def seconds_to_minutes_custom(sec):
+    """
+    Custom rounding:
+    0–29 s -> floor
+    30–59 s -> ceil
+    działa też dla wartości ujemnych
+    """
+    if pd.isna(sec):
+        return None
+    
+    sec = float(sec)
+    minutes = int(sec // 60)  # część pełnych minut
+    remainder = abs(sec % 60)  # sekundy reszty (zawsze dodatnie)
+
+    if remainder < 30:
+        return minutes
+    else:
+        # jeśli opóźnienie ujemne -> zaokrąglamy w dół (np. -70s -> -1, ale -40s -> 0)
+        if sec < 0:
+            return minutes - 1
+        else:
+            return minutes + 1
+        
 
 # === GŁÓWNY PIPELINE ===
 
@@ -293,7 +319,7 @@ def build_vehicles_trips_joined_from_feeds(
     - vehicles_df LEFT JOIN trips_df
     - join po (trip_id, current_stop_sequence) = (tu_trip_id, stop_sequence)
     - z trips dodajemy tylko kolumny, których nie ma w vehicles:
-      tu_direction_id, tu_start_time, arrival_delay, stop_id, stop_sequence, schedule_relationship
+      tu_direction_id, arrival_delay, stop_id, stop_sequence, schedule_relationship
     """
 
     vehicles_df, trips_df = build_datasets_from_feeds(vehicle_feed, trip_feed)
@@ -304,7 +330,6 @@ def build_vehicles_trips_joined_from_feeds(
             "tu_trip_id",
             "stop_sequence",
             "tu_direction_id",
-            "tu_start_time",
             "arrival_delay",
             "stop_id",
             "schedule_relationship",
@@ -322,6 +347,7 @@ def build_vehicles_trips_joined_from_feeds(
 
     # tu_trip_id = trip_id → duplikat, więc wyrzucamy
     merged = merged.drop(columns=["tu_trip_id"])
+    merged["arrival_delay_minutes"] = merged["arrival_delay"].apply(seconds_to_minutes_custom)
 
     # Możesz też wyrzucić stop_sequence z trips, jeśli nie chcesz duplikatu.
     # merged = merged.drop(columns=["stop_sequence"])

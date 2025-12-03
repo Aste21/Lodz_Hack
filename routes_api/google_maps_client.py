@@ -107,6 +107,10 @@ def format_route_response(route: Dict) -> Dict:
 
     leg = route["legs"][0]
 
+    # Współrzędne startu i końca całej trasy
+    start_location = leg["start_location"]
+    end_location = leg["end_location"]
+
     steps = []
     for step in leg["steps"]:
         travel_mode = step["travel_mode"]
@@ -114,7 +118,19 @@ def format_route_response(route: Dict) -> Dict:
             "mode": travel_mode,
             "distance": step["distance"]["text"],
             "duration": step["duration"]["text"],
+            "start_location": {
+                "lat": step["start_location"]["lat"],
+                "lng": step["start_location"]["lng"],
+            },
+            "end_location": {
+                "lat": step["end_location"]["lat"],
+                "lng": step["end_location"]["lng"],
+            },
         }
+
+        # Dodaj polyline jeśli jest dostępny (dla rysowania na mapie)
+        if "polyline" in step:
+            step_data["polyline"] = step["polyline"]["points"]
 
         if travel_mode == "WALKING":
             step_data["instruction"] = f"PIESZO – {step['distance']['text']}"
@@ -127,6 +143,10 @@ def format_route_response(route: Dict) -> Dict:
             dep_stop = t["departure_stop"]["name"]
             arr_stop = t["arrival_stop"]["name"]
 
+            # Współrzędne przystanków
+            dep_stop_location = t["departure_stop"].get("location", {})
+            arr_stop_location = t["arrival_stop"].get("location", {})
+
             step_data.update(
                 {
                     "vehicle_type": vehicle_type,
@@ -135,6 +155,22 @@ def format_route_response(route: Dict) -> Dict:
                     "arrival_stop": arr_stop,
                     "num_stops": num_stops,
                     "instruction": f"{vehicle_type}: linia {line_name}, z {dep_stop} do {arr_stop} ({num_stops} przystanków)",
+                    "departure_stop_location": (
+                        {
+                            "lat": dep_stop_location.get("lat"),
+                            "lng": dep_stop_location.get("lng"),
+                        }
+                        if dep_stop_location
+                        else None
+                    ),
+                    "arrival_stop_location": (
+                        {
+                            "lat": arr_stop_location.get("lat"),
+                            "lng": arr_stop_location.get("lng"),
+                        }
+                        if arr_stop_location
+                        else None
+                    ),
                 }
             )
 
@@ -153,9 +189,23 @@ def format_route_response(route: Dict) -> Dict:
                 if line_name:
                     line_numbers.append(str(line_name))
 
+    # Overview polyline dla całej trasy (jeśli dostępny)
+    overview_polyline = None
+    if "overview_polyline" in route:
+        overview_polyline = route["overview_polyline"]["points"]
+
     return {
         "distance": leg["distance"]["text"],
         "duration": leg["duration"]["text"],
+        "start_location": {
+            "lat": start_location["lat"],
+            "lng": start_location["lng"],
+        },
+        "end_location": {
+            "lat": end_location["lat"],
+            "lng": end_location["lng"],
+        },
+        "overview_polyline": overview_polyline,  # Polyline dla całej trasy (do rysowania na mapie)
         "steps": steps,
         "line_numbers": line_numbers,
     }
