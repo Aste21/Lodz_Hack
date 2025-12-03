@@ -1,8 +1,8 @@
 body {
-  background-color: rgb(255,255,255); 
+  background-color: rgb(255, 255, 255);
   margin: 0;
   padding: 0;
-  font-family: Arial, sans-serif; 
+  font-family: Arial, sans-serif;
 }
 
 .app-container {
@@ -23,10 +23,10 @@ body {
   min-height: 100dvh;
 }
 .header-image {
-  width: 100%; 
-  height: auto; 
-  object-fit: cover;  
-  margin-bottom: 10px;  
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  margin-bottom: 10px;
 }
 
 .map-wrapper {
@@ -57,7 +57,6 @@ body {
   padding: 8px;
   cursor: pointer;
 }
-
 
 .address-fields {
   width: 100%;
@@ -123,7 +122,6 @@ body {
   top: 0;
 }
 
-
 .fp-header {
   display: flex;
   justify-content: space-between;
@@ -155,7 +153,6 @@ body {
   font-weight: 700;
 }
 
-
 .fp-search {
   width: 100%;
   padding: 10px;
@@ -163,7 +160,6 @@ body {
   border-radius: 12px;
   font-size: 16px;
 }
-
 
 .fp-selected {
   display: flex;
@@ -186,7 +182,7 @@ body {
 .fp-grid {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(8, 1fr); 
+  grid-template-columns: repeat(8, 1fr);
   gap: 10px;
   padding: 5px;
 
@@ -203,8 +199,8 @@ body {
 }
 
 .fp-item {
-  height: 42px;           
-  font-size: 14px;      
+  height: 42px;
+  font-size: 14px;
   border-radius: 10px;
   border: 3px solid black;
   display: flex;
@@ -219,7 +215,6 @@ body {
   border-color: black;
   background: #e6e6e6;
 }
-
 
 .fp-footer {
   display: flex;
@@ -250,17 +245,14 @@ body {
   color: white;
 }
 
-
-
 .fp-item.tram {
   border-color: dodgerblue;
   color: dodgerblue;
 }
 
 .fp-item.tram.selected {
-  background: rgba(30,144,255,0.15);
+  background: rgba(30, 144, 255, 0.15);
 }
-
 
 .fp-item.bus {
   border-color: #ff1f8a;
@@ -268,7 +260,7 @@ body {
 }
 
 .fp-item.bus.selected {
-  background: rgba(255,31,138,0.15);
+  background: rgba(255, 31, 138, 0.15);
 }
 
 .fp-section-divider {
@@ -305,7 +297,7 @@ body {
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  background-image: url('/background.jpg');
+  background-image: url("/background.jpg");
   background-size: 100% auto;
   background-position: top center;
   background-repeat: no-repeat;
