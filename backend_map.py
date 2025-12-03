@@ -17,7 +17,6 @@ from fastapi.responses import JSONResponse
 from google.transit import gtfs_realtime_pb2
 import requests
 import pandas as pd
-from fastapi_utils.tasks import repeat_every
 from pipeline.pipeline import (
     build_datasets_from_feeds,
     fetch_feed,
@@ -39,10 +38,14 @@ if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY nie jest ustawiony w zmiennych środowiskowych!")
 
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-CHEAP_MODEL = os.getenv("OPENAI_CHEAP_MODEL", "gpt-3.5-turbo")  # Tani model
+CHEAP_MODEL = os.getenv("OPENAI_CHEAP_MODEL", "gpt-4o")  # Tani model
 
-VEHICLE_POSITIONS_URL = "https://otwarte.miasto.lodz.pl/wp-content/uploads/2025/06/vehicle_positions.bin"
-TRIP_UPDATES_URL = "https://otwarte.miasto.lodz.pl/wp-content/uploads/2025/06/trip_updates.bin"
+VEHICLE_POSITIONS_URL = (
+    "https://otwarte.miasto.lodz.pl/wp-content/uploads/2025/06/vehicle_positions.bin"
+)
+TRIP_UPDATES_URL = (
+    "https://otwarte.miasto.lodz.pl/wp-content/uploads/2025/06/trip_updates.bin"
+)
 
 # Inicjalizuj klienta OpenAI
 openai_client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE)
@@ -79,7 +82,7 @@ def process_utrudnienia_with_llm(utrudnienia: List[Dict]) -> Dict:
             utrudnienia_text += "\n"
 
         if not utrudnienia_text.strip():
-            return {"disabled_lines": [], "disabled_trams": [], "disabled_buses": []}
+            return {"disabled_lines": []}
 
         # Prompt dla LLM
         prompt = f"""Przeanalizuj poniższe utrudnienia w komunikacji miejskiej w Łodzi i zwróć JSON z listą linii które są WYŁĄCZONE Z UŻYTKU (całkowicie nie działają, nie kursują).
@@ -88,19 +91,17 @@ WAŻNE:
 - Jeśli linia ma tylko opóźnienia lub objazdy, ale nadal kursuje - NIE dodawaj jej do wyłączonych
 - Dodaj do wyłączonych TYLKO linie które są całkowicie wyłączone z użytku (np. "zatrzymanie ruchu", "wstrzymanie", "nie kursuje", "wyłączona")
 - Jeśli w opisie jest "komunikacja została wznowiona" lub "tramwaje jadą" - linia NIE jest wyłączona
-- Rozróżnij tramwaje (numery bez liter lub z literami) i autobusy (zwykle numery z literami jak 69A, 55A)
+- Zawsze zwracaj uwagę na coś w rodzaju "ZMIANA SYTUACJI"
 
 UTRUDNIENIA:
 {utrudnienia_text}
 
 Zwróć TYLKO JSON w formacie:
 {{
-  "disabled_lines": ["2", "5", "12"],  // Wszystkie wyłączone linie (tramwaje i autobusy)
-  "disabled_trams": ["2", "5"],        // Tylko wyłączone tramwaje
-  "disabled_buses": ["69A", "55A"]     // Tylko wyłączone autobusy
+  "disabled_lines": ["2", "5", "12", "69A"]
 }}
 
-Jeśli żadna linia nie jest wyłączona, zwróć puste listy. Zwróć TYLKO JSON, bez dodatkowego tekstu."""
+Jeśli żadna linia nie jest wyłączona, zwróć pustą listę. Zwróć TYLKO JSON, bez dodatkowego tekstu."""
 
         # Wywołaj OpenAI API
         response = openai_client.chat.completions.create(
@@ -126,12 +127,12 @@ Jeśli żadna linia nie jest wyłączona, zwróć puste listy. Zwróć TYLKO JSO
             return result
         else:
             # Jeśli nie ma JSON, zwróć pusty
-            return {"disabled_lines": [], "disabled_trams": [], "disabled_buses": []}
+            return {"disabled_lines": []}
 
     except Exception as e:
         print(f"Błąd podczas przetwarzania utrudnień przez LLM: {e}")
         # W razie błędu zwróć pusty JSON
-        return {"disabled_lines": [], "disabled_trams": [], "disabled_buses": []}
+        return {"disabled_lines": []}
 
 
 def save_utrudnienia_to_file(
@@ -169,17 +170,9 @@ def save_utrudnienia_to_file(
                 f.write("=" * 80 + "\n\n")
                 if structured_data.get("disabled_lines"):
                     f.write(
-                        f"Wszystkie wyłączone linie: {', '.join(structured_data['disabled_lines'])}\n"
+                        f"Wyłączone linie: {', '.join(structured_data['disabled_lines'])}\n"
                     )
-                if structured_data.get("disabled_trams"):
-                    f.write(
-                        f"Wyłączone tramwaje: {', '.join(structured_data['disabled_trams'])}\n"
-                    )
-                if structured_data.get("disabled_buses"):
-                    f.write(
-                        f"Wyłączone autobusy: {', '.join(structured_data['disabled_buses'])}\n"
-                    )
-                if not structured_data.get("disabled_lines"):
+                else:
                     f.write(
                         "Brak wyłączonych linii - wszystkie działają (mogą mieć opóźnienia lub objazdy).\n"
                     )
@@ -190,17 +183,22 @@ def save_utrudnienia_to_file(
 def save_utrudnienia_json(structured_data: Dict, filename: Path):
     """Zapisuje ustrukturyzowane dane do pliku JSON."""
     try:
+        if not structured_data:
+            structured_data = {
+                "disabled_lines": [],
+            }
+
         data_to_save = {
             "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "disabled_lines": structured_data.get("disabled_lines", []),
-            "disabled_trams": structured_data.get("disabled_trams", []),
-            "disabled_buses": structured_data.get("disabled_buses", []),
         }
 
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+        return True
     except Exception as e:
         print(f"Błąd przy zapisie JSON: {e}")
+        return False
 
 
 def scraper_thread():
@@ -213,27 +211,65 @@ def scraper_thread():
             utrudnienia = scraper.scrape_mpk_utrudnienia()
             print(f"[{time.strftime('%H:%M:%S')}] Pobrano {len(utrudnienia)} utrudnień")
 
-            # Przetwórz przez LLM aby wyciągnąć wyłączone linie
-            print(
-                f"[{time.strftime('%H:%M:%S')}] Przetwarzanie przez LLM ({CHEAP_MODEL})..."
-            )
-            structured_data = process_utrudnienia_with_llm(utrudnienia)
-            print(
-                f"[{time.strftime('%H:%M:%S')}] LLM znalazł {len(structured_data.get('disabled_lines', []))} wyłączonych linii"
-            )
+            # ZAWSZE przetwórz przez LLM aby wyciągnąć wyłączone linie (nawet jeśli brak utrudnień)
+            structured_data = None
+            try:
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] Przetwarzanie przez LLM ({CHEAP_MODEL})..."
+                )
+                structured_data = process_utrudnienia_with_llm(utrudnienia)
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] LLM znalazł {len(structured_data.get('disabled_lines', []))} wyłączonych linii"
+                )
+            except Exception as llm_error:
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] Błąd LLM, używam pustych danych: {llm_error}"
+                )
+                structured_data = {
+                    "disabled_lines": [],
+                }
 
-            # Zapisz do pliku tekstowego
+            # ZAWSZE zapisz do pliku tekstowego (nawet jeśli brak utrudnień)
             save_utrudnienia_to_file(utrudnienia, UTRUDS_FILE, structured_data)
             print(f"[{time.strftime('%H:%M:%S')}] Zapisano do {UTRUDS_FILE}")
 
-            # Zapisz do pliku JSON
-            save_utrudnienia_json(structured_data, UTRUDS_JSON_FILE)
-            print(f"[{time.strftime('%H:%M:%S')}] Zapisano do {UTRUDS_JSON_FILE}")
+            # ZAWSZE zapisz do pliku JSON (automatycznie razem z TXT - zawsze po zapisie TXT)
+            # Upewnij się że structured_data istnieje
+            if not structured_data:
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] structured_data jest None, ustawiam pusty dict"
+                )
+                structured_data = {
+                    "disabled_lines": [],
+                }
+
+            # Zawsze zapisz JSON (niezależnie od tego czy structured_data jest pełne czy puste)
+            print(
+                f"[{time.strftime('%H:%M:%S')}] Próba zapisu JSON do {UTRUDS_JSON_FILE}..."
+            )
+            result = save_utrudnienia_json(structured_data, UTRUDS_JSON_FILE)
+            if result:
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] Zapisano JSON do {UTRUDS_JSON_FILE}"
+                )
+            else:
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] BŁĄD: Nie udało się zapisać JSON do {UTRUDS_JSON_FILE}"
+                )
 
         except Exception as e:
             print(
                 f"[{time.strftime('%H:%M:%S')}] Błąd podczas pobierania/przetwarzania utrudnień: {e}"
             )
+            # W razie błędu, zapisz pusty JSON żeby plik zawsze istniał
+            try:
+                empty_data = {
+                    "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "disabled_lines": [],
+                }
+                save_utrudnienia_json(empty_data, UTRUDS_JSON_FILE)
+            except:
+                pass
 
         # Czekaj 60 sekund przed następnym pobraniem
         time.sleep(60)
@@ -279,8 +315,6 @@ def get_utrudnienia_json():
         return {
             "updated_at": None,
             "disabled_lines": [],
-            "disabled_trams": [],
-            "disabled_buses": [],
             "file_exists": False,
         }
     except Exception as e:
@@ -318,6 +352,7 @@ def fetch_gtfs_feed(url: str) -> gtfs_realtime_pb2.FeedMessage:
     feed.ParseFromString(resp.content)
     return feed
 
+
 @app.get("/data")
 def get_all_data():
     """
@@ -330,7 +365,7 @@ def get_all_data():
     """
     try:
         vehicle_feed = fetch_feed(VEHICLE_POSITIONS_URL)
-        trip_feed    = fetch_feed(TRIP_UPDATES_URL)
+        trip_feed = fetch_feed(TRIP_UPDATES_URL)
 
         vehicles_df, trips_df = build_datasets_from_feeds(vehicle_feed, trip_feed)
 
