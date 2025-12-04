@@ -1,6 +1,6 @@
 ================================================================================
 AKTUALNE INFORMACJE O KOMUNIKACJI MIEJSKIEJ W ŁODZI
-Zaktualizowano: 2025-12-03T23:13:38.401025
+Zaktualizowano: 2025-12-04T00:00:11.455344
 ================================================================================
 
 
@@ -306,6 +306,26 @@ Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 
 
 
 [AKTUALNE]
+Komunikat: 246/25
+Tytuł: Od dnia 6 października 2025r., zmiana rozkładów jazdy linii
+87A
+87B
+
+Szczegóły:
+Linie: 87A, 87B
+
+Komunikat 246/25
+Na podstawie decyzji Zarządu Dróg i Transportu,
+od dnia 6 października 2025r.
+zmianie ulegnie rozkład jazdy
+linii 87A/B
+.
+Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 20
+
+Źródło: https://mpk.lodz.pl/rozklady/wholemessage.jsp?articleId=36670
+
+
+[AKTUALNE]
 Tytuł: MPK-Łódź Spółka z o.o.
 
 Szczegóły:
@@ -410,26 +430,6 @@ Wszystkie treści MPK-Łódź Spółka z o.o. opublikowane na niniejszej stronie
 Wszystkie treści MPK-Łódź Spółka z o.o. opublikowane na niniejszej stronie są chronione prawem autorskim. Kopiowanie i rozpowszechnianie ich bez pisemnej zgody MPK-Łódź Spółka z o.o. dla celów innych niż potrzeby własne jest zabronione.
 
 Źródło: https://mpk.lodz.pl/rozklady/wholemessage.jsp?articleId=36668
-
-
-[AKTUALNE]
-Komunikat: 246/25
-Tytuł: Od dnia 6 października 2025r., zmiana rozkładów jazdy linii
-87A
-87B
-
-Szczegóły:
-Linie: 87A, 87B
-
-Komunikat 246/25
-Na podstawie decyzji Zarządu Dróg i Transportu,
-od dnia 6 października 2025r.
-zmianie ulegnie rozkład jazdy
-linii 87A/B
-.
-Dodatkowe informacje są dostępne pod całodobowym numerem telefonu: 42 638 90 20
-
-Źródło: https://mpk.lodz.pl/rozklady/wholemessage.jsp?articleId=36670
 
 
 [AKTUALNE]

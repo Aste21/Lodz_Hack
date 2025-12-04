@@ -34,11 +34,35 @@ function App() {
   const [toAddress, setToAddress] = useState("");
   const [vehicles, setVehicles] = useState([]);
   const [showMap, setShowMap] = useState(false);
+  const [routeData, setRouteData] = useState(null);
 
   const logAddresses = () => {
-    console.log(`Skąd: ${fromAddress}, Dokąd: ${toAddress}`);
-  };
+    if (!fromAddress || !toAddress) return;
 
+    const origin = fromAddress.toUpperCase().includes("ŁÓDŹ")
+    ? fromAddress
+    : `${fromAddress}, ŁÓDŹ`;
+
+    const destination = toAddress.toUpperCase().includes("ŁÓDŹ")
+      ? toAddress
+      : `${toAddress}, ŁÓDŹ`;
+
+    const url = `http://localhost:8001/route?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error("Server error");
+        return res.json();
+      })
+      .then(data => {
+        console.log("Response from /route:", data);
+        setRouteData(data); // Store the route data
+      })
+      .catch(err => {
+        console.error("Error fetching route:", err);
+        setRouteData(null); // Clear route on error
+      });
+  };
 
   useEffect(() => {
     fetch("/stops.txt")
@@ -80,19 +104,13 @@ function App() {
       fetch("http://localhost:8001/data")
         .then((response) => response.json())
         .then((data) => {
-          // setVehicles(data);
-          // console.log(data)
+          setVehicles(data);
         })
         .catch((err) => console.error("Error fetching vehicles:", err));
     };
 
-    // Fetch immediately on mount
     fetchVehicles();
-
-    // Then fetch every 10 seconds
     const interval = setInterval(fetchVehicles, 10000);
-
-    // Cleanup interval on unmount
     return () => clearInterval(interval);
   }, []);
 
@@ -111,12 +129,8 @@ function App() {
     const screenWidth = window.innerWidth;
     const centerX = screenWidth / 2;
     
-    // Jeśli kliknięto po prawej stronie od centrum (niebieskiego kółka), przejdź do mapy
     if (clickX > centerX) {
       setShowMap(true);
-    } else {
-      // Po lewej stronie - chat (na razie placeholder)
-      // setShowChat(true);
     }
   };
 
@@ -126,20 +140,16 @@ function App() {
     
     const screenWidth = window.innerWidth;
     const centerX = screenWidth / 2;
-    const circleRadius = 30; // promień kółka (60px / 2)
+    const circleRadius = 30;
     const distanceFromCenter = Math.abs(clickX - centerX);
     
-    // Jeśli kliknięto w kółko (w promieniu 30px od centrum), wróć do ekranu głównego
     if (distanceFromCenter <= circleRadius) {
       setShowMap(false);
-    } else if (clickX < centerX) {
-      // Po lewej stronie od kółka - chat (na razie placeholder)
-      // setShowChat(true);
+      setRouteData(null); // Clear route when returning to start screen
     }
-    // Po prawej stronie - pozostajemy na mapie (nic nie robimy)
   };
 
-  // Ekran startowy
+  // Start screen
   if (!showMap) {
     return (
       <div 
@@ -165,6 +175,7 @@ function App() {
             vehicles={vehicles}
             stops={stops}
             selectedLines={selectedLines}
+            routeData={routeData}
           />
         )}
         <button className="filter-btn" onClick={() => setIsFilterOpen(true)}>
@@ -181,33 +192,48 @@ function App() {
       </div>
 
       <div className="address-fields">
-<div className="address-row">
-  <div className="addr-dot from-dot"></div>
-  <input
-    className="addr-box"
-    value={fromAddress}
-    onChange={(e) => setFromAddress(e.target.value)}
-    placeholder="Skąd?"
-  />
-</div>
+        <div className="address-row">
+          <div className="addr-dot from-dot"></div>
+          <input
+            className="addr-box"
+            value={fromAddress}
+            onChange={(e) => setFromAddress(e.target.value)}
+            placeholder="Skąd?"
+          />
+        </div>
 
-<div className="address-row">
-  <div className="addr-dot to-dot"></div>
-  <input
-    className="addr-box"
-    value={toAddress}
-    onChange={(e) => setToAddress(e.target.value)}
-    placeholder="Dokąd?"
-  />
-</div>
+        <div className="address-row">
+          <div className="addr-dot to-dot"></div>
+          <input
+            className="addr-box"
+            value={toAddress}
+            onChange={(e) => setToAddress(e.target.value)}
+            placeholder="Dokąd?"
+          />
+        </div>
 
-{(fromAddress && toAddress) && (
-  <div className="address-row">
-    <button className="log-btn" onClick={logAddresses}>
-      Szukaj trasy
-    </button>
-  </div>
-)}
+        <div className="address-row">
+          <button className="log-btn" onClick={logAddresses}>
+            Szukaj trasy
+          </button>
+        </div>
+        
+        {routeData && (
+          <div className="address-row route-info">
+            <div style={{ padding: '10px', background: '#007bff', borderRadius: '8px' }}>
+              <strong>Trasa znaleziona!</strong><br/>
+              Dystans: {routeData.route?.distance}<br/>
+              Czas: {routeData.route?.duration}<br/>
+              Linie: {routeData.route?.line_numbers?.join(', ')}<br />
+              <button 
+                onClick={() => setRouteData(null)}
+                style={{ marginLeft: '10px', padding: '5px 10px', cursor: 'pointer' }}
+              >
+                Wyczyść
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={`filter-panel ${isFilterOpen ? "open" : ""}`}>
@@ -235,8 +261,6 @@ function App() {
           )}
         </div>
 
-        {}
-
         <div className="fp-subtitle">Wszystkie linie:</div>
 
         <div className="fp-grid">
@@ -257,8 +281,6 @@ function App() {
               );
             })}
         </div>
-
-        {}
 
         <div className="fp-footer">
           <button className="fp-reset" onClick={() => setSelectedLines([])}>
