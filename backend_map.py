@@ -515,11 +515,7 @@ def get_route(origin: str, destination: str):
             )
             if not filtered_routes:
                 # Jeśli wszystkie trasy używają wyłączonych linii, zwróć pierwszą z ostrzeżeniem
-                return {
-                    "route": format_route_response(all_routes[0]),
-                    "warning": f"Wszystkie trasy używają wyłączonych linii: {', '.join(disabled_lines)}. Zwrócono najlepszą dostępną trasę.",
-                    "disabled_lines": disabled_lines,
-                }
+                return format_route_response(all_routes[0])
             routes_to_choose = filtered_routes
         else:
             # Brak wyłączonych linii - użyj wszystkich tras
@@ -531,9 +527,7 @@ def get_route(origin: str, destination: str):
         if not best_route:
             raise HTTPException(status_code=500, detail="Błąd podczas wyboru trasy")
 
-        return {
-            "route": format_route_response(best_route),
-        }
+        return format_route_response(best_route)
 
     except HTTPException:
         raise
