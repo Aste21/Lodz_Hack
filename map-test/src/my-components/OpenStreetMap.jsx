@@ -20,8 +20,22 @@ const busIcon = new L.Icon({
   popupAnchor: [0, -20],
 });
 
+const highlightedBusIcon = new L.Icon({
+  iconUrl: '/bus-front-cur.svg',
+  iconSize: [25, 25],
+  iconAnchor: [12, 25],
+  popupAnchor: [0, -20],
+});
+
 const tramIcon = new L.Icon({
   iconUrl: '/tram-front.svg',
+  iconSize: [25, 25],
+  iconAnchor: [12, 25],
+  popupAnchor: [0, -20],
+});
+
+const highlightedTramIcon = new L.Icon({
+  iconUrl: '/tram-front-cur.svg',
   iconSize: [25, 25],
   iconAnchor: [12, 25],
   popupAnchor: [0, -20],
@@ -92,6 +106,12 @@ export default function OpenStreetMap({
   const filteredVehicles = selectedLines.length > 0
     ? vehicles.filter(v => selectedLines.includes(v.route_id))
     : vehicles;
+
+  // Get the first transit step's vehicle_id to highlight
+  const firstTransitStep = routeData?.route?.steps?.find(
+    step => step.mode === 'TRANSIT' && step.vehicle_live
+  );
+  const firstTransitVehicleId = firstTransitStep?.vehicle_live?.vehicle_id;
 
   // Decode route polyline if available
   const routeCoords = routeData?.route?.overview_polyline 
@@ -189,18 +209,26 @@ export default function OpenStreetMap({
       })}
 
       {/* Vehicle markers */}
-      {filteredVehicles.map((v) => (
-        <Marker
-          key={v.entity_id}
-          position={[v.latitude, v.longitude]}
-          icon={v.route_type.includes("autobus") ? busIcon : tramIcon}
-        >
-          <Popup>
-            {v.route_type.toUpperCase()} {v.route_id} <br/>
-            Arrival delay: {v.arrival_delay_minutes} min  
-          </Popup>
-        </Marker>
-      ))}
+      {filteredVehicles.map((v) => {
+        const isHighlighted = firstTransitVehicleId && v.vehicle_id === firstTransitVehicleId;
+        const vehicleIcon = v.route_type.includes("autobus")
+          ? (isHighlighted ? highlightedBusIcon : busIcon)
+          : (isHighlighted ? highlightedTramIcon : tramIcon);
+        
+        return (
+          <Marker
+            key={v.entity_id}
+            position={[v.latitude, v.longitude]}
+            icon={vehicleIcon}
+          >
+            <Popup>
+              {v.route_type.toUpperCase()} {v.route_id} <br/>
+              Arrival delay: {v.arrival_delay_minutes} min
+              {isHighlighted && <><br/><strong>⭐ Your vehicle!</strong></>}
+            </Popup>
+          </Marker>
+        );
+      })}
 
       {/* Stop markers - only show when zoomed in and no route active */}
       {!routeData && currentZoom >= minZoomForStops && stops.map((s) => (

@@ -145,6 +145,9 @@ def enrich_route_with_live_vehicle_data(
                 "arrival_delay_minutes": delay_min,
                 "delay_status": delay_status,
                 "timestamp": match.get("timestamp"),
+                "lat": match.get("latitude"),
+                "lng": match.get("longitude"),
+                "route_type": match.get("route_type")
             }
         else:
             # brak dopasowania – jawnie wpisujemy None, żeby frontend wiedział, co się stało
