@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 import requests
 from dotenv import load_dotenv
 
-from live_vehicle_suggest import enrich_route_with_live_vehicle_data
+from .live_vehicle_suggest import enrich_route_with_live_vehicle_data
 
 # === Konfiguracja ===
 
@@ -23,10 +23,12 @@ DIRECTIONS_URL = "https://maps.googleapis.com/maps/api/directions/json"
 
 # === Funkcje pomocnicze ===
 
+
 def _build_directions_params(
     origin: str,
     destination: str,
     departure_time: Optional[str] = "now",
+    alternatives: bool = True,
 ) -> Dict[str, str]:
     """
     Buduje parametry do zapytania Directions API (tryb TRANSIT domyślnie).
@@ -39,6 +41,9 @@ def _build_directions_params(
         "language": "pl",
     }
 
+    if alternatives:
+        params["alternatives"] = "true"
+
     if departure_time is not None:
         # "now" albo timestamp w sekundach
         params["departure_time"] = departure_time
@@ -50,23 +55,44 @@ def call_directions_api(
     origin: str,
     destination: str,
     departure_time: Optional[str] = "now",
+    alternatives: bool = True,
 ) -> Dict:
     """
     Wywołuje Google Directions API i zwraca surowy JSON.
     """
-    params = _build_directions_params(origin, destination, departure_time)
+    params = _build_directions_params(origin, destination, departure_time, alternatives)
     resp = requests.get(DIRECTIONS_URL, params=params, timeout=10)
     resp.raise_for_status()
     data = resp.json()
 
     status = data.get("status")
     if status != "OK":
-        raise RuntimeError(f"Directions API error: {status}, details: {data.get('error_message')}")
+        raise RuntimeError(
+            f"Directions API error: {status}, details: {data.get('error_message')}"
+        )
 
     return data
 
 
+def get_all_routes(
+    origin: str,
+    destination: str,
+    departure_time: Optional[str] = "now",
+) -> List[Dict]:
+    """
+    Pobiera wszystkie dostępne trasy transit dla danego A→B.
+    """
+    data = call_directions_api(
+        origin=origin,
+        destination=destination,
+        departure_time=departure_time,
+        alternatives=True,
+    )
+    return data.get("routes", [])
+
+
 # === Formatowanie trasy do naszego formatu ===
+
 
 def format_route_response(route: Dict) -> Dict:
     """
@@ -183,11 +209,7 @@ def format_route_response(route: Dict) -> Dict:
 
     # Linie komunikacji zbiorowej użyte w trasie
     line_numbers = sorted(
-        {
-            s["line"]
-            for s in steps
-            if s.get("mode") == "TRANSIT" and s.get("line")
-        }
+        {s["line"] for s in steps if s.get("mode") == "TRANSIT" and s.get("line")}
     )
 
     # Bazowy obiekt odpowiedzi
@@ -212,12 +234,14 @@ def format_route_response(route: Dict) -> Dict:
     }
 
     # 🔥 Wzbogacenie o live dane pojazdów z backendu /data
+    print("[enricher] Rozpoczynam wzbogacanie trasy o live dane pojazdów...")
     route_response = enrich_route_with_live_vehicle_data(route_response)
 
     return route_response
 
 
 # === Główna funkcja eksportowana na zewnątrz ===
+
 
 def get_transit_route(
     origin: str,
@@ -239,4 +263,5 @@ def get_transit_route(
         raise RuntimeError("Brak tras w odpowiedzi Directions API")
 
     route = routes[0]  # na razie bierzemy pierwszą trasę
+    print("Returning format response")
     return format_route_response(route)

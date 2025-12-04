@@ -1,65 +1,29 @@
-"""
-Wzbogacanie JSON-a trasy o live dane pojazdu z backendu /data.
-
-Zakładamy, że mamy:
-- FastAPI z endpointem /data (zwraca listę wierszy vehicles+trips)
-- JSON trasy w formacie jak w response_1764798190916.json, np.:
-
-{
-  "route": {
-    "distance": "4.9 km",
-    "duration": "23 mins",
-    "steps": [
-      {
-        "mode": "WALKING",
-        ...
-      },
-      {
-        "mode": "TRANSIT",
-        "vehicle_type": "BUS",
-        "line": "F1",
-        "departure_stop": "Broniewskiego - Kraszewskiego (0052)",
-        ...
-      }
-    ],
-    "line_numbers": ["F1"]
-  },
-  "disabled_lines": [],
-  "filtered": false
-}
-
-Celem jest dodanie do każdego kroku TRANSIT pola:
-step["vehicle_live"] = {...}
-"""
-
 import re
 from typing import Dict, List, Any, Optional
 
 import requests
 
+# URL do Twojego backendu z /data
+DATA_API_URL = "http://localhost:8001/data"
 
-# URL do Twojego backendu z /data.
-# Jeśli FastAPI z GTFS działa na innym porcie/host, tutaj popraw.
-DATA_API_URL = "http://localhost:8000/data"
-
-# Wzorzec wyciągający kod przystanku z końca stringa, np. "(0052)"
+# Szukamy kodu przystanku w nawiasach na końcu, np. "Broniewskiego (0052)"
 STOP_CODE_PATTERN = re.compile(r"\((\d+)\)\s*$")
 
 
 def extract_stop_code(stop_label: str) -> Optional[str]:
     """
     'Broniewskiego - Kraszewskiego (0052)' -> '0052'
-    Jeśli nie ma kodu w nawiasach na końcu, zwraca None.
+    Jeśli nie ma kodu, zwraca None.
     """
     if not stop_label:
         return None
-    match = STOP_CODE_PATTERN.search(stop_label)
-    return match.group(1) if match else None
+    m = STOP_CODE_PATTERN.search(stop_label)
+    return m.group(1) if m else None
 
 
 def classify_delay_status(delay_min: Optional[float]) -> Optional[str]:
     """
-    Prosta klasyfikacja opóźnienia w minutach:
+    Prosta klasyfikacja opóźnienia:
     - <= -1   -> "early"
     - -1..1   -> "on_time"
     - > 1     -> "late"
@@ -82,40 +46,50 @@ def classify_delay_status(delay_min: Optional[float]) -> Optional[str]:
 def find_matching_vehicle(
     vehicles_rows: List[Dict[str, Any]],
     line: str,
-    dep_stop_code: str,
+    dep_stop_code: Optional[str],
 ) -> Optional[Dict[str, Any]]:
     """
-    Szukamy pojazdu w danych z /data:
-    - route_id == line (np. "F1")
-    - current_stop_id == dep_stop_code (np. "0052")
-    Jeśli jest kilka, bierzemy ten z największym timestamp (najświeższy).
-    """
+    Szukamy pojazdu dla danej linii (line) i ew. przystanku początkowego.
 
-    if not line or not dep_stop_code:
+    Strategia:
+    1) Filtrowanie po route_id == line
+    2) Jeśli mamy dep_stop_code:
+         - próbujemy zawęzić po current_stop_id == dep_stop_code
+    3) Jeśli nadal brak kandydatów → bierzemy dowolny pojazd z tej linii
+       (najświeższy po timestamp).
+
+    Zwraca jeden dict (wiersz), albo None.
+    """
+    if not line:
         return None
 
     line_str = str(line)
-    stop_str = str(dep_stop_code)
 
-    candidates = [
-        v
-        for v in vehicles_rows
-        if str(v.get("route_id")) == line_str
-        and str(v.get("current_stop_id")) == stop_str
-    ]
+    # 1. wszystkie pojazdy danej linii
+    base_candidates = [v for v in vehicles_rows if str(v.get("route_id")) == line_str]
 
-    if not candidates:
+    if not base_candidates:
         return None
 
-    # sortuj po timestamp (malejąco)
-    candidates.sort(key=lambda v: v.get("timestamp") or 0, reverse=True)
-    return candidates[0]
+    # 2. jeżeli mamy kod przystanku, próbujemy dopasować po current_stop_id
+    if dep_stop_code:
+        stop_str = str(dep_stop_code)
+        strong_candidates = [
+            v for v in base_candidates if str(v.get("current_stop_id")) == stop_str
+        ]
+        if strong_candidates:
+            base_candidates = strong_candidates
+
+    # 3. wybieramy najświeższy po timestamp
+    base_candidates.sort(key=lambda v: v.get("timestamp") or 0, reverse=True)
+    return base_candidates[0]
 
 
-def enrich_route_with_live_vehicle_data(route_response: Dict[str, Any]) -> Dict[str, Any]:
+def enrich_route_with_live_vehicle_data(
+    route_response: Dict[str, Any],
+) -> Dict[str, Any]:
     """
-    Przyjmuje finalny JSON trasy, dodaje do kroków TRANSIT sekcję "vehicle_live"
-    z informacjami z backendu /data:
+    Dodaje do kroków TRANSIT pole "vehicle_live" z informacjami z backendu /data:
 
     step["vehicle_live"] = {
         "vehicle_id": ...,
@@ -126,11 +100,7 @@ def enrich_route_with_live_vehicle_data(route_response: Dict[str, Any]) -> Dict[
         "delay_status": ...,
         "timestamp": ...
     }
-
-    Zwraca zmodyfikowany route_response.
     """
-
-    # bezpieczeństwo: jeśli route/steps nie istnieje, nic nie robimy
     route = route_response.get("route")
     if not route:
         return route_response
@@ -139,7 +109,7 @@ def enrich_route_with_live_vehicle_data(route_response: Dict[str, Any]) -> Dict[
     if not isinstance(steps, list):
         return route_response
 
-    # 1. Pobierz live dane z backendu /data
+    # 1. Pobierz dane z /data
     try:
         resp = requests.get(DATA_API_URL, timeout=5)
         resp.raise_for_status()
@@ -147,20 +117,21 @@ def enrich_route_with_live_vehicle_data(route_response: Dict[str, Any]) -> Dict[
         if not isinstance(vehicles_rows, list):
             vehicles_rows = []
     except Exception as e:
-        # W razie problemu z backendem /data – nie crashujemy, tylko zwracamy oryginalną trasę
-        print(f"[enricher] Błąd podczas pobierania /data: {e}")
+        print(f"[enricher] Błąd pobierania /data: {e}")
         return route_response
 
-    # 2. Dla każdego kroku TRANSIT szukamy pasującego pojazdu
+    # 2. Dla każdego kroku TRANSIT spróbuj znaleźć pojazd
     for step in steps:
         if step.get("mode") != "TRANSIT":
             continue
 
-        line = step.get("line")  # np. "F1"
-        dep_stop_label = step.get("departure_stop")  # np. "Broniewskiego... (0052)"
-        dep_stop_code = extract_stop_code(dep_stop_label)
+        line = step.get("line")  # np. "F1", "76"
+        dep_stop_label = step.get("departure_stop")
+        dep_stop_code = extract_stop_code(dep_stop_label)  # może być None
 
         match = find_matching_vehicle(vehicles_rows, line, dep_stop_code)
+
+        print(f"match: ==={match}===")
 
         if match:
             delay_min = match.get("arrival_delay_minutes")
@@ -175,7 +146,12 @@ def enrich_route_with_live_vehicle_data(route_response: Dict[str, Any]) -> Dict[
                 "delay_status": delay_status,
                 "timestamp": match.get("timestamp"),
             }
+        else:
+            # brak dopasowania – jawnie wpisujemy None, żeby frontend wiedział, co się stało
+            print(
+                f"[enricher] Brak pojazdu dla linii {line} i przystanku {dep_stop_code}"
+            )
+            step["vehicle_live"] = None
 
-    # zaktualizuj steps w strukturze route
     route_response["route"]["steps"] = steps
     return route_response

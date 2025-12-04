@@ -533,9 +533,6 @@ def get_route(origin: str, destination: str):
 
         return {
             "route": format_route_response(best_route),
-            "disabled_lines": disabled_lines,
-            "filtered": len(disabled_lines) > 0
-            and len(filtered_routes) < len(all_routes),
         }
 
     except HTTPException:
