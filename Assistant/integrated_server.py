@@ -4,6 +4,7 @@ Używa OpenAI API (GPT-5.1).
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from openai import OpenAI
@@ -26,6 +27,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Konfiguracja CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # W produkcji użyj konkretnych domen
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Konfiguracja OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

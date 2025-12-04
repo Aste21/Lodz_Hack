@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 import OpenStreetMap from "./my-components/OpenStreetMap";
+import Chat from "./my-components/Chat";
 import Papa from "papaparse";
 import { SlidersHorizontal } from "lucide-react";
 
@@ -35,6 +36,7 @@ function App() {
   const [vehicles, setVehicles] = useState([]);
   const [showMap, setShowMap] = useState(false);
   const [routeData, setRouteData] = useState(null);
+  const [showChat, setShowChat] = useState(false);
 
   const logAddresses = () => {
     if (!fromAddress || !toAddress) return;
@@ -129,8 +131,25 @@ function App() {
     const screenWidth = window.innerWidth;
     const centerX = screenWidth / 2;
     
+    // Oblicz rzeczywisty rozmiar kółka (15vw, max 60px, min 50px)
+    const circleSize = Math.min(Math.max(window.innerWidth * 0.15, 50), 60);
+    const circleRadius = circleSize / 2;
+    const safeRadius = circleRadius + 10; // margines bezpieczeństwa 10px
+    
+    const distanceFromCenter = Math.abs(clickX - centerX);
+    
+    // Jeśli kliknięto w kółko (z marginesem bezpieczeństwa), nie rób nic (lub można dodać akcję)
+    if (distanceFromCenter <= safeRadius) {
+      // Kliknięcie w kółko - można dodać akcję lub pozostawić puste
+      return;
+    }
+    
+    // Jeśli kliknięto po prawej stronie od kółka, przejdź do mapy
     if (clickX > centerX) {
       setShowMap(true);
+    } else {
+      // Po lewej stronie - chat
+      setShowChat(true);
     }
   };
 
@@ -140,16 +159,35 @@ function App() {
     
     const screenWidth = window.innerWidth;
     const centerX = screenWidth / 2;
-    const circleRadius = 30;
+    
+    // Oblicz rzeczywisty rozmiar kółka (15vw, max 60px, min 50px)
+    const circleSize = Math.min(Math.max(window.innerWidth * 0.15, 50), 60);
+    const circleRadius = circleSize / 2;
+    const safeRadius = circleRadius + 15; // większy margines bezpieczeństwa 15px
+    
     const distanceFromCenter = Math.abs(clickX - centerX);
     
-    if (distanceFromCenter <= circleRadius) {
+    // Jeśli kliknięto w kółko (z marginesem bezpieczeństwa), wróć do ekranu głównego
+    if (distanceFromCenter <= safeRadius) {
+      setShowMap(false);
+      setShowChat(false);
+      return;
+    }
+    
+    // Jeśli kliknięto po lewej stronie od kółka - chat
+    if (clickX < centerX) {
+      setShowChat(true);
       setShowMap(false);
       setRouteData(null); // Clear route when returning to start screen
     }
   };
 
-  // Start screen
+  // Ekran chatu
+  if (showChat) {
+    return <Chat onClose={() => setShowChat(false)} />;
+  }
+
+  // Ekran startowy
   if (!showMap) {
     return (
       <div 

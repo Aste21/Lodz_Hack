@@ -3,9 +3,14 @@ Klient do Google Maps Directions API dla tras komunikacją miejską.
 """
 
 import os
-import requests
 from typing import List, Dict, Optional
+
+import requests
 from dotenv import load_dotenv
+
+from live_vehicle_suggest import enrich_route_with_live_vehicle_data
+
+# === Konfiguracja ===
 
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
@@ -13,94 +18,79 @@ API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 if not API_KEY:
     raise RuntimeError("Brak GOOGLE_MAPS_API_KEY w .env")
 
+DIRECTIONS_URL = "https://maps.googleapis.com/maps/api/directions/json"
 
-def get_single_route(origin: str, destination: str) -> Optional[Dict]:
+
+# === Funkcje pomocnicze ===
+
+def _build_directions_params(
+    origin: str,
+    destination: str,
+    departure_time: Optional[str] = "now",
+) -> Dict[str, str]:
     """
-    Pobiera jedną trasę komunikacją miejską z punktu A do B.
-
-    Args:
-        origin: Punkt startowy (adres lub współrzędne)
-        destination: Punkt docelowy (adres lub współrzędne)
-
-    Returns:
-        Dict z danymi trasy lub None jeśli błąd
+    Buduje parametry do zapytania Directions API (tryb TRANSIT domyślnie).
     """
-    url = "https://maps.googleapis.com/maps/api/directions/json"
-
     params = {
         "origin": origin,
         "destination": destination,
         "mode": "transit",
         "key": API_KEY,
+        "language": "pl",
     }
 
-    try:
-        r = requests.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        data = r.json()
+    if departure_time is not None:
+        # "now" albo timestamp w sekundach
+        params["departure_time"] = departure_time
 
-        if data.get("status") != "OK":
-            error_msg = data.get("error_message", "Directions failed")
-            print(f"Błąd Google Maps API: {error_msg}")
-            return None
-
-        if not data.get("routes"):
-            return None
-
-        route = data["routes"][0]
-        return route
-    except Exception as e:
-        print(f"Błąd podczas pobierania trasy: {e}")
-        return None
+    return params
 
 
-def get_all_routes(origin: str, destination: str) -> List[Dict]:
+def call_directions_api(
+    origin: str,
+    destination: str,
+    departure_time: Optional[str] = "now",
+) -> Dict:
     """
-    Pobiera wszystkie dostępne trasy komunikacją miejską z punktu A do B.
-
-    Args:
-        origin: Punkt startowy (adres lub współrzędne)
-        destination: Punkt docelowy (adres lub współrzędne)
-
-    Returns:
-        Lista tras (Dict) lub pusta lista jeśli błąd
+    Wywołuje Google Directions API i zwraca surowy JSON.
     """
-    url = "https://maps.googleapis.com/maps/api/directions/json"
+    params = _build_directions_params(origin, destination, departure_time)
+    resp = requests.get(DIRECTIONS_URL, params=params, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
 
-    params = {
-        "origin": origin,
-        "destination": destination,
-        "mode": "transit",
-        "alternatives": "true",  # Prosimy o alternatywne trasy
-        "key": API_KEY,
-    }
+    status = data.get("status")
+    if status != "OK":
+        raise RuntimeError(f"Directions API error: {status}, details: {data.get('error_message')}")
 
-    try:
-        r = requests.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        data = r.json()
+    return data
 
-        if data.get("status") != "OK":
-            error_msg = data.get("error_message", "Directions failed")
-            print(f"Błąd Google Maps API: {error_msg}")
-            return []
 
-        routes = data.get("routes", [])
-        return routes
-    except Exception as e:
-        print(f"Błąd podczas pobierania tras: {e}")
-        return []
-
+# === Formatowanie trasy do naszego formatu ===
 
 def format_route_response(route: Dict) -> Dict:
     """
-    Formatuje trasę do odpowiedzi API.
+    Formatuje pojedynczą trasę z Directions API do odpowiedzi API naszej aplikacji.
 
     Args:
-        route: Dict z danymi trasy z Google Maps API
+        route: Dict z danymi trasy z Google Maps API (pojedyncza 'route' z listy 'routes')
 
     Returns:
-        Sformatowany Dict z trasą
+        Sformatowany Dict w strukturze:
+        {
+          "route": {
+            "distance": ...,
+            "duration": ...,
+            "start_location": {...},
+            "end_location": {...},
+            "overview_polyline": "...",
+            "steps": [...],
+            "line_numbers": [...]
+          },
+          "disabled_lines": [],
+          "filtered": False
+        }
+        + wzbogacony o "vehicle_live" w krokach TRANSIT
     """
     if not route or "legs" not in route:
         return {}
@@ -111,10 +101,11 @@ def format_route_response(route: Dict) -> Dict:
     start_location = leg["start_location"]
     end_location = leg["end_location"]
 
-    steps = []
+    steps: List[Dict] = []
+
     for step in leg["steps"]:
         travel_mode = step["travel_mode"]
-        step_data = {
+        step_data: Dict = {
             "mode": travel_mode,
             "distance": step["distance"]["text"],
             "duration": step["duration"]["text"],
@@ -128,12 +119,13 @@ def format_route_response(route: Dict) -> Dict:
             },
         }
 
-        # Dodaj polyline jeśli jest dostępny (dla rysowania na mapie)
+        # Polyline dla tego kroku (np. do rysowania segmentu trasy)
         if "polyline" in step:
             step_data["polyline"] = step["polyline"]["points"]
 
         if travel_mode == "WALKING":
             step_data["instruction"] = f"PIESZO – {step['distance']['text']}"
+
         elif travel_mode == "TRANSIT":
             t = step["transit_details"]
             line = t["line"]
@@ -154,7 +146,10 @@ def format_route_response(route: Dict) -> Dict:
                     "departure_stop": dep_stop,
                     "arrival_stop": arr_stop,
                     "num_stops": num_stops,
-                    "instruction": f"{vehicle_type}: linia {line_name}, z {dep_stop} do {arr_stop} ({num_stops} przystanków)",
+                    "instruction": (
+                        f"{vehicle_type}: linia {line_name}, z {dep_stop} "
+                        f"do {arr_stop} ({num_stops} przystanków)"
+                    ),
                     "departure_stop_location": (
                         {
                             "lat": dep_stop_location.get("lat"),
@@ -176,36 +171,72 @@ def format_route_response(route: Dict) -> Dict:
 
         steps.append(step_data)
 
-    # Wyciągnij numery linii
-    line_numbers = []
-    for leg in route["legs"]:
-        if "steps" not in leg:
-            continue
-        for step in leg["steps"]:
-            if step.get("travel_mode") == "TRANSIT":
-                transit_details = step.get("transit_details", {})
-                line = transit_details.get("line", {})
-                line_name = line.get("short_name") or line.get("name")
-                if line_name:
-                    line_numbers.append(str(line_name))
+    # --- Podsumowanie trasy (cały leg) ---
 
-    # Overview polyline dla całej trasy (jeśli dostępny)
+    distance = leg["distance"]["text"]
+    duration = leg["duration"]["text"]
+
+    # Całościowy polyline trasy (overview)
     overview_polyline = None
     if "overview_polyline" in route:
-        overview_polyline = route["overview_polyline"]["points"]
+        overview_polyline = route["overview_polyline"].get("points")
 
-    return {
-        "distance": leg["distance"]["text"],
-        "duration": leg["duration"]["text"],
-        "start_location": {
-            "lat": start_location["lat"],
-            "lng": start_location["lng"],
+    # Linie komunikacji zbiorowej użyte w trasie
+    line_numbers = sorted(
+        {
+            s["line"]
+            for s in steps
+            if s.get("mode") == "TRANSIT" and s.get("line")
+        }
+    )
+
+    # Bazowy obiekt odpowiedzi
+    route_response: Dict = {
+        "route": {
+            "distance": distance,
+            "duration": duration,
+            "start_location": {
+                "lat": start_location["lat"],
+                "lng": start_location["lng"],
+            },
+            "end_location": {
+                "lat": end_location["lat"],
+                "lng": end_location["lng"],
+            },
+            "overview_polyline": overview_polyline,  # Polyline dla całej trasy (do rysowania na mapie)
+            "steps": steps,
+            "line_numbers": line_numbers,
         },
-        "end_location": {
-            "lat": end_location["lat"],
-            "lng": end_location["lng"],
-        },
-        "overview_polyline": overview_polyline,  # Polyline dla całej trasy (do rysowania na mapie)
-        "steps": steps,
-        "line_numbers": line_numbers,
+        "disabled_lines": [],
+        "filtered": False,
     }
+
+    # 🔥 Wzbogacenie o live dane pojazdów z backendu /data
+    route_response = enrich_route_with_live_vehicle_data(route_response)
+
+    return route_response
+
+
+# === Główna funkcja eksportowana na zewnątrz ===
+
+def get_transit_route(
+    origin: str,
+    destination: str,
+    departure_time: Optional[str] = "now",
+) -> Dict:
+    """
+    High-level:
+    - wywołuje Google Directions API (mode=transit),
+    - bierze pierwszą trasę,
+    - formatuje ją do naszego formatu,
+    - wzbogaca o live dane z MPK.
+
+    Zwraca: gotowy JSON do wysłania przez API frontowi.
+    """
+    data = call_directions_api(origin, destination, departure_time)
+    routes = data.get("routes") or []
+    if not routes:
+        raise RuntimeError("Brak tras w odpowiedzi Directions API")
+
+    route = routes[0]  # na razie bierzemy pierwszą trasę
+    return format_route_response(route)
